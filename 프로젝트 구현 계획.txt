@@ -36,9 +36,9 @@
 #pre: id(String), password(String), questionIndex(int), questionAns(String)
 #post: Succes - True | Fail - False
 
--int login(String id, String password, boolean autoLogin)	//로그인 시스템, 로그인 성공 시 1, id가 존재하지 않는다면 2, password가 틀렸다면 3 반환 | 로그인 성공 시, autoLogin이 True라면 내부 txt파일과 DB에 자동로그인 설정 
+-int login(String id, String password, boolean autoLogin)	//로그인 시스템, 기타 오류 0, 로그인 성공 시 1, id가 존재하지 않는다면 2, password가 틀렸다면 3 반환 | 로그인 성공 시, autoLogin이 True라면 내부 txt파일과 DB에 자동로그인 설정 
 #pre: len(id)>0 | len(password)>0
-#post: Success - 1,  ID does not exist - 2, Password is wrong - 3
+#post: Other errors - 0, Success - 1,  ID does not exist - 2, Password is wrong - 3
 
 -boolean autoLogin()	//내부 txt파일에 저장된 ID와 암호화된 문자열이 존재한다면, 이를 기반으로 자동 로그인
 #pre: None
@@ -129,12 +129,15 @@
 -각 class파일에 packge schedulerAlertApp 추가
 -SchedulerInterface Class만 내부에 Register 및 Scheduler Class를 변수로 선언
 
--2024/11/19
+-2024/11/19_1
 	1. Register Class의 Array<Stiring> getKeyArray(),Array<Stiring> getData(String path),
 	Scheduler Class의 Array<String> specifyScheList(Register user, String date),
 	SchedulerInterface Class의 void showSpecifyScheListScreen(Array<String> scheList)
 	의 type이 올바르지 않은 형태이기에 Array<String> -> String[] 로 변경
 	2. Firebase의 RealtimeDatabase에서 저장되는 날짜(key) 형식에 의해 기존 String[] specifyScheList(Register user, String date)의
 	date 형식을 "Year/Month/day" -> "YearMonthDay"로 변경. (ex.20241212)
+
+-2024/11/19_2
+	1. int login(String id, String password, boolean autoLogin)에 "기타 오류" 코드(0) 추가
 
 
