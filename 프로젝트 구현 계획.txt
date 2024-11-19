@@ -10,8 +10,8 @@
 	│   ├── autoLoginStr: "a012daaw21yio3io6oint63"
 	│   ├── autoLoginKey: "123214214"
 	│   └── schedules
-	│	  ├── 2024.11.16: ["일정1","일정2","일정3",]
-	│	  └── 2024.12.23: ["일정11", "일정12", "일정13", ...]
+	│	  ├── 2024.11.16: {"일정1","일정2","일정3",}
+	│	  └── 2024.12.23: {"일정11", "일정12", "일정13", ...}
 	├── id2
 	│   ├── password: "exPassword21313"
 	│   ├── questionIndex: 3
@@ -19,13 +19,13 @@
 	│   ├── autoLoginStr: "u4h5ndi32pof"
 	│   ├── autoLoginKey: "2132134"
 	│   └── schedules
-	│	  ├── 2024.11.17: ["asd","123","dw", ...]
-	│	  └── 2024.12.22: ["일정11", "일정12", "일정13", ...]
+	│	  ├── 2024.11.17: {"asd","123","dw", ...}
+	│	  └── 2024.12.22: {"일정11", "일정12", "일정13", ...}
 	.
 	.
 	.
 
-#Path 예시: getData("/users/id2/schedules/2024.11.17") >> ["asd","123","dw", ...]
+#Path 예시: getData("/users/id2/schedules/2024.11.17") >> {"asd","123","dw", ...}
 
 
 ###############################################################################
@@ -48,15 +48,15 @@
 #pre: id(String), questionIndex(int), questionAns(String), newPassword(String)
 #post: Success - 1,  ID does not exist - 2, Answer is wrong - 3
 
--Array<Stiring> getKeyArray()	//path에 존재하는 key 값들을 Array형태로 반환, 만약 날짜가 지난 일정이 존재한다면 delData(String path, int index)를 호출하여 Data 삭제
+-String[] getKeyArray()	//path에 존재하는 key 값들을 Array형태로 반환, 만약 날짜가 지난 일정이 존재한다면 delData(String path, int index)를 호출하여 Data 삭제
 #pre: path(String): "/key1/key2/.../key"
-#post: keyList(Array<String>) - ["key값 1", "key값 2", ...]
+#post: keyList(String[]) - {"key값 1", "key값 2", ...}
 
--Array<Stiring> getData(String path)	//path(마지막 key값이 목표 key)에 해당하는 value 값을 받아옴
+-String[] getData(String path)	//path(마지막 key값이 목표 key)에 해당하는 value 값을 받아옴
 #pre: path(String): "/key1/key2/.../key" 
-#post: Data(Array<Stiring>) - ["저장된 일정1","저장된 일정2", ...]
+#post: Data(String[]) - {"저장된 일정1","저장된 일정2", ...}
 
--boolean setData(String path, String data)	//path에 key(string)-value(Array<string>) 형태로 data 저장
+-boolean setData(String path, String data)	//path에 key(string)-value(String[]) 형태로 data 저장
 #pre: path(String): "/key1/key2/.../key" | Data(String): "저장할 일정" and len(Data)>0
 #post: Succes - True | Fail - False
 
@@ -75,9 +75,9 @@
 #pre: None
 #post: Schedule summary(TreeMap) - {남은 일자1:일정 개수1, 남은 일자2:일정 개수2, ...}	//key(남은 일자), value(일정 개수)
 
--Array<String> specifyScheList(Register user, String date)	//date를 기반으로 path를 설정한 뒤, getData(String path)를 호출하여 일정 목록을 반환
-#pre: date(String): "Year/Month/Day"
-#post: ScheList(Array<String>) - ["저장된 일정1","저장된 일정2", ...]
+-String[] specifyScheList(Register user, String date)	//date를 기반으로 path를 설정한 뒤, getData(String path)를 호출하여 일정 목록을 반환
+#pre: date(String): "YearMonthDay"	(ex.20241212)
+#post: ScheList(String[]) - {"저장된 일정1","저장된 일정2", ...}
 
 -boolean delSche(Register user, String date, int index)	//date를 기반으로 path를 설정한 뒤, getData(String path)를 호출하여 index에 해당하는 data 삭제 후 setData로 다시 저장, index==-1 해당 날짜의 모든 일정 삭제
 #pre: date(String): "Year/Month/Day" | index(int) >=-1 && index(int) < len(getData(String path))
@@ -114,8 +114,8 @@
 #pre: scheSummary(TreeMap<int,int>): {남은 일자1:일정 개수1, 남은 일자2:일정 개수2, ...}	//key(남은 일자), value(일정 개수)
 #post: "?개의 일정이 $일 남았습니다. ?개의 일정이 $일 남았습니다. ..." 일정 요약 화면 출력 -> Main화면(GUI)
 
--void showSpecifyScheListScreen(Array<String> scheList)	//getKeyArray()을 호출하여 일정이 저장된 Date들 중 하나를 선택하여 specifyScheList(Register user, String date)을 호출하여 Data에 Index를 부여 및 정리 후 출력
-#pre: ScheList(Array<String>) - ["저장된 일정1","저장된 일정2", ...]
+-void showSpecifyScheListScreen(String[] scheList)	//getKeyArray()을 호출하여 일정이 저장된 Date들 중 하나를 선택하여 specifyScheList(Register user, String date)을 호출하여 Data에 Index를 부여 및 정리 후 출력
+#pre: ScheList(String[]) - {"저장된 일정1","저장된 일정2", ...}
 #post: 정리된 Data 화면 출력 -> Main화면(GUI)
 
 -void delScheScreen()	//showSpecifyScheListScreen() 화면에서 일정 삭제 버튼을 클릭 시 해당 함수 호출, Index를 지정하여 delSche(Register user, String date, int index)을 호출하고서 성공 및 실패 여부를 화면에 출력
@@ -129,5 +129,12 @@
 -각 class파일에 packge schedulerAlertApp 추가
 -SchedulerInterface Class만 내부에 Register 및 Scheduler Class를 변수로 선언
 
+-2024/11/19
+	1. Register Class의 Array<Stiring> getKeyArray(),Array<Stiring> getData(String path),
+	Scheduler Class의 Array<String> specifyScheList(Register user, String date),
+	SchedulerInterface Class의 void showSpecifyScheListScreen(Array<String> scheList)
+	의 type이 올바르지 않은 형태이기에 Array<String> -> String[] 로 변경
+	2. Firebase의 RealtimeDatabase에서 저장되는 날짜(key) 형식에 의해 기존 String[] specifyScheList(Register user, String date)의
+	date 형식을 "Year/Month/day" -> "YearMonthDay"로 변경. (ex.20241212)
 
 
