@@ -40,7 +40,7 @@
 #pre: len(id)>0 | len(password)>0
 #post: Other errors - 0, Success - 1,  ID does not exist - 2, Password is wrong - 3
 
--boolean autoLogin()	//내부 txt파일에 저장된 ID와 암호화된 문자열이 존재한다면, 이를 기반으로 자동 로그인
+-boolean autoLogin()	//내부 json파일에 저장된 ID와 암호화된 문자열, ket 문자열이 각각 해시를 통해 FB에 저장된 문자열들과 같다면, 이를 기반으로 자동 로그인
 #pre: None
 #post: Succes - True | Fail - False
 
@@ -48,17 +48,17 @@
 #pre: id(String), questionIndex(int), questionAns(String), newPassword(String)
 #post: Success - 1,  ID does not exist - 2, Answer is wrong - 3
 
--String[] getKeyArray()	//path에 존재하는 key 값들을 Array형태로 반환, 만약 날짜가 지난 일정이 존재한다면 delData(String path, int index)를 호출하여 Data 삭제
+-CompletableFuture<String[]> getKeyArray()	//path에 존재하는 key 값들을 Array형태로 반환, 만약 날짜가 지난 일정이 존재한다면 delData(String path, int index)를 호출하여 Data 삭제
 #pre: path(String): "/key1/key2/.../key"
 #post: keyList(String[]) - {"key값 1", "key값 2", ...}
 
--String[] getData(String path)	//path(마지막 key값이 목표 key)에 해당하는 value 값을 받아옴
+-CompletableFuture<String[]> getData(String path)	//path(마지막 key값이 목표 key)에 해당하는 value 값을 받아옴
 #pre: path(String): "/key1/key2/.../key" 
-#post: Data(String[]) - {"저장된 일정1","저장된 일정2", ...}
+#post: String[]처럼 값을 얻어내기 위해서는 String[] result = getData(...).get(); 으로 실행해야함 / Data(String[]) - {"저장된 일정1","저장된 일정2", ...}
 
--boolean setData(String path, String data)	//path에 key(string)-value(String[]) 형태로 data 저장
-#pre: path(String): "/key1/key2/.../key" | Data(String): "저장할 일정" and len(Data)>0
-#post: Succes - True | Fail - False
+-CompletableFuture<boolean> setData(String path, String data)	//path에 key(string)-value(String) 형태로 data 저장, 내부에서 path에 schedules가 포함되어 있다면 일정 저장으로 인지하여 일정을 추가하는 형태의 코드가 실행
+#pre: path(String): "/key1/key2/.../key" | Data(String): "저장할 Data" and len(Data)>0
+#post: boolean처럼 값을 얻어내기 위해서는 boolean result = setData(...).get(); 으로 실행해야함 / Succes - True | Fail - False
 
 -boolean delData(String path,int index)	//path에 존재하는 일정 배열 중 index에 해당하는 data 삭제, index==-1 이면 배열 전체를 삭제
 #pre: path(String): "/key1/key2/.../key" | index(int) >=-1
@@ -130,9 +130,9 @@
 -SchedulerInterface Class만 내부에 Register 및 Scheduler Class를 변수로 선언
 
 -2024/11/19_1
-	1. Register Class의 Array<Stiring> getKeyArray(),Array<Stiring> getData(String path),
-	Scheduler Class의 Array<String> specifyScheList(Register user, String date),
-	SchedulerInterface Class의 void showSpecifyScheListScreen(Array<String> scheList)
+	1. 	Register Class의 Array<Stiring> getKeyArray(),Array<Stiring> getData(String path),
+		Scheduler Class의 Array<String> specifyScheList(Register user, String date),
+		SchedulerInterface Class의 void showSpecifyScheListScreen(Array<String> scheList)
 	의 type이 올바르지 않은 형태이기에 Array<String> -> String[] 로 변경
 	2. Firebase의 RealtimeDatabase에서 저장되는 날짜(key) 형식에 의해 기존 String[] specifyScheList(Register user, String date)의
 	date 형식을 "Year/Month/day" -> "YearMonthDay"로 변경. (ex.20241212)
@@ -140,4 +140,20 @@
 -2024/11/19_2
 	1. int login(String id, String password, boolean autoLogin)에 "기타 오류" 코드(0) 추가
 
-
+-2024/11/21_1
+	1. 회원의 비밀번호 보안을 위해 BCrypt 알고리즘을 적용하여 저장, 그렇기에 BCrypt 라이브러리 추가
+	2. autoLogin 기능을 위해 txt파일이 아닌 json파일로 저장하며, json파일을 저장 및 읽을 수 있는 Jackson 라이브러리 추가
+	3. autoLogin 기능 보완을 위해 key를 사용하여 Client에 저장된 str을 해독하는 방식이 아닌 해시를 2번 사용하여 FB에 저장될 Str에는 1차 코드 해시값,
+	 Key에는 2차 코드 값 / Client에는 Str은 1차 코드 값, Key에는 2차 코드 해시값을 저장한다. 이를 통해 한 쪽의 Data로는 이해하기 autoLogind을 의도적으로 뚫기 어렵다.
+	4. setData 함수의 구현계획 설명 추가 및 수정
+	5. Firebase의 비동기적 작동을 위해 
+		boolean setData(...) 함수를 CompletableFuture<boolean> setData(...)
+		String[] getData(...) 함수를 CompletableFuture<String[]> getData(...)
+		String[] getKeyArray(...) 함수를 CompletableFuture<String[]> getKeyArray()
+	함수로 대체함. *사용 방법 필히 참고* 
+	getKeyArray().thenAccept(userIdsList -> {
+		List<String> keyList = Arrays.asList(userIdsList);
+	}).exceptionally(ex -> {
+		System.err.println("Failed to retrieve userIdsList: " + ex.getMessage());
+		return null;
+	}); 와 같이 사용하면 비동기적 처리를 진행하고서 동기적으로 코드가 처리 됨.
