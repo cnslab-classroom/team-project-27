@@ -25,7 +25,7 @@
 	.
 	.
 
-#Path 예시: getData("/users/id2/schedules/2024.11.17") >> {"asd","123","dw", ...}
+#Path 예시: getData("id2/schedules/2024.11.17") >> {"asd","123","dw", ...}
 
 
 ###############################################################################
@@ -36,7 +36,8 @@
 #pre: id(String), password(String), questionIndex(int), questionAns(String)
 #post: Succes - True | Fail - False
 
--int login(String id, String password, boolean autoLogin)	//로그인 시스템, 기타 오류 0, 로그인 성공 시 1, id가 존재하지 않는다면 2, password가 틀렸다면 3 반환 | 로그인 성공 시, autoLogin이 True라면 내부 txt파일과 DB에 자동로그인 설정 
+-int login(String id, String password, boolean autoLogin)	//로그인 시스템, 기타 오류 0, 로그인 성공 시 1, id가 존재하지 않는다면 2, password가 틀렸다면 3 반환, login은 성공했지만 autoLogin을 정상적으로 처리 못했다면 4 | 로그인 성공 시, 
+																autoLogin이 True라면 내부 txt파일과 DB에 자동로그인 설정 
 #pre: len(id)>0 | len(password)>0
 #post: Other errors - 0, Success - 1,  ID does not exist - 2, Password is wrong - 3
 
@@ -44,11 +45,11 @@
 #pre: None
 #post: Succes - True | Fail - False
 
--int findPassword(String id, int questionIndex, String questionAns, String newPassword)	//입력한 정보들이 일치한다면 Password 재설정 | Ps 재설정 성공 시 1, id가 존재하지 않는다면 2, 저장된 question 정보와 다를 시 3
+-int findPassword(String id, int questionIndex, String questionAns, String newPassword)	//입력한 정보들이 일치한다면 Password 재설정 | 기타 오류 0, Ps 재설정 성공 시 1, id가 존재하지 않는다면 2, 저장된 question 정보와 다를 시 3
 #pre: id(String), questionIndex(int), questionAns(String), newPassword(String)
-#post: Success - 1,  ID does not exist - 2, Answer is wrong - 3
+#post: Other errors - 0, Success - 1,  ID does not exist - 2, Answer is wrong - 3
 
--CompletableFuture<String[]> getKeyArray()	//path에 존재하는 key 값들을 Array형태로 반환, 만약 날짜가 지난 일정이 존재한다면 delData(String path, int index)를 호출하여 Data 삭제
+-CompletableFuture<String[]> getKeyArray(boolean isSchedules)	//path에 존재하는 key 값들을 Array형태로 반환, 만약 날짜가 지난 일정이 존재한다면 delData(String path, int index)를 호출하여 Data 삭제
 #pre: path(String): "/key1/key2/.../key"
 #post: keyList(String[]) - {"key값 1", "key값 2", ...}
 
@@ -129,7 +130,7 @@
 -각 class파일에 packge schedulerAlertApp 추가
 -SchedulerInterface Class만 내부에 Register 및 Scheduler Class를 변수로 선언
 
--2024/11/19_1
+-2024/11/19_1(박대원)
 	1. 	Register Class의 Array<Stiring> getKeyArray(),Array<Stiring> getData(String path),
 		Scheduler Class의 Array<String> specifyScheList(Register user, String date),
 		SchedulerInterface Class의 void showSpecifyScheListScreen(Array<String> scheList)
@@ -137,10 +138,10 @@
 	2. Firebase의 RealtimeDatabase에서 저장되는 날짜(key) 형식에 의해 기존 String[] specifyScheList(Register user, String date)의
 	date 형식을 "Year/Month/day" -> "YearMonthDay"로 변경. (ex.20241212)
 
--2024/11/19_2
+-2024/11/19_2(박대원)
 	1. int login(String id, String password, boolean autoLogin)에 "기타 오류" 코드(0) 추가
 
--2024/11/21_1
+-2024/11/21_1(박대원)
 	1. 회원의 비밀번호 보안을 위해 BCrypt 알고리즘을 적용하여 저장, 그렇기에 BCrypt 라이브러리 추가
 	2. autoLogin 기능을 위해 txt파일이 아닌 json파일로 저장하며, json파일을 저장 및 읽을 수 있는 Jackson 라이브러리 추가
 	3. autoLogin 기능 보완을 위해 key를 사용하여 Client에 저장된 str을 해독하는 방식이 아닌 해시를 2번 사용하여 FB에 저장될 Str에는 1차 코드 해시값,
@@ -158,10 +159,21 @@
 		return null;
 	}); 와 같이 사용하면 비동기적 처리를 진행하고서 동기적으로 코드가 처리 됨.
 
--2024/11/23_1
+-2024/11/23_1(박건하)
 	1. SchedulerInterface 클래스가 Register 객체를 멤버 변수로 포함하고 있으므로 autoLoginScreen(),loginScreen() 메서드에서 이를 인자로 받는 대신 직접 사용
 		autoLoginScreen(Register user) -> autoLoginScreen()
 		loginScreen(Register user) -> loginScreen()
 	2. cardLayout을 통한 화면 전환 기능 구현을 위해 SchedulerInterface 클래스 메서드의 리턴형을 JPanel로 변경
 		ex:  void findPasswordScreen() -> JPanel findPasswordScreen()
 
+-2024/11/23_2(박대원)
+	1. int findPassword(String id, int questionIndex, String questionAns, String newPassword)에 "기타 오류" 코드(0) 추가
+	2. CompletableFuture<String[]> getKeyArray() 함수를 목적에 맞게 수정 -> CompletableFuture<String[]> getKeyArray(boolean isSchedules)
+		-path는 내부 code가 자동으로 처리하며, isSchedules가 true 이면 schedules의 key 배열을 반환, false면 users에 저장된 id 배열을 반환
+	3. Firebase의 비동기적 작동을 위해 
+		boolean delData(...) 함수를 CompletableFuture<boolean> delData(...)
+	함수로 대체함. *기타 추가 사항: 2024/11/21_1(박대원) 참고*
+	4. path 전달 관련하여, /users/는 모든 함수에 중복 적용되므로 path에는 제외하고 전달
+	5. autoLogin을 위해 Register Class에 중첩 클래스인 AutoLoginData Class를 추가
+	6. login(...)함수에서 Login은 성공하였으나 AutoLogin 시도에 실패한 경우 4값을 반환하도록 추가
+	
