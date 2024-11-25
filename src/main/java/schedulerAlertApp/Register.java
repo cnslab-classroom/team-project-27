@@ -1,7 +1,9 @@
 package schedulerAlertApp;
+//package io.github.classroomorg.team27; //test용
 
 import com.google.firebase.database.DatabaseReference;  //Firebase library
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.api.core.ApiFuture;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.ValueEventListener; 
@@ -13,11 +15,13 @@ import org.checkerframework.checker.units.qual.t;
 import org.mindrot.jbcrypt.BCrypt;  //JBCrypt library
 
 import java.io.File;
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.lang.reflect.Array;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -25,12 +29,13 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Register { //complete
-    private String userId;
+    protected String userId;
     private DatabaseReference ref;
     private static final int GENSALTNUM = 12;
     private static final String CHARSET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
     public Register(){  //complete
+        System.out.println("Register object created start");
         this.userId = null;
         try {
             FirebaseInit.main(null);
@@ -38,21 +43,37 @@ public class Register { //complete
             e.printStackTrace();
         }
         // Check if "autoLoginData.json" exists
-        String fileName = "autoLoginData.json";
-        File file = new File(fileName);
         // if "autoLoginData.json" does not exist, create it with default data
-        if (!file.exists() && file.isFile()) {
-            ObjectMapper objectMapper = new ObjectMapper();
-            AutoLoginData autoLoginData = new AutoLoginData("test", "test", "test");
-            objectMapper.writeValue(new File("autoLoginData.json"), autoLoginData);
+        try {
+            String fileName = "autoLoginData.json";
+            File file = new File(fileName);
+            if (!file.exists()) {
+                ObjectMapper objectMapper = new ObjectMapper();
+                AutoLoginData autoLoginData = new AutoLoginData("test", "test", "test");
+                objectMapper.writeValue(file, autoLoginData);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    protected boolean register(String id, String password, int questionIndex, String questionAns){  //complete
+    private static <T> CompletableFuture<T> toCompletableFuture(ApiFuture<T> apiFuture) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        apiFuture.addListener(() -> {
+            try {
+                future.complete(apiFuture.get());
+            } catch (Exception e) {
+                future.completeExceptionally(e);
+            }
+        }, Runnable::run);
+        return future;
+    }
+
+    protected CompletableFuture<Boolean> register(String id, String password, int questionIndex, String questionAns){  //complete
         // Refer to the "users" path
         ref = FirebaseDatabase.getInstance().getReference("users");
         // Organize user register data
-        CompletableFuture<Boolean> asyncTask = new CompletableFuture<>();
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
         boolean isSuccessful = false;
         Map<String, Object> userData = new HashMap<>(); 
         userData.put("password", BCrypt.hashpw(password, BCrypt.gensalt(GENSALTNUM)));
@@ -62,177 +83,23 @@ public class Register { //complete
         userData.put("autoLoginKey", "NULL");
         userData.put("schedules", new HashMap<>());
         // Set userData
-        databaseReference.child(id).setValue(userData)
-            .addOnSuccessListener(aVoid -> {
-                System.out.println("uesrData successfully created.");
-                isSuccessful = true;
-                asyncTask.complete(true);
-            })
-            .addOnFailureListener(e -> {
-                System.err.println("Failed to create uesrData: " + e.getMessage());
-                asyncTask.complete(false);
-            });
-        // check setValue(userData) is successed
-        boolean result = asyncTask.join(); // Wait for the task to complete
-        if (result) {
-            System.out.println("Operation completed successfully!");
-        } else {
-            System.err.println("Operation failed.");
-        }
-        if(isSuccessful)
-            return true;
-        return false;
-    }
-
-    protected int login(String id, String password, boolean autoLogin){ //complete
-        //Check id
-        ref = FirebaseDatabase.getInstance().getReference("users");
-        List<String> userIdList = null;
-        getKeyArray(false).thenAccept(userIdsList -> {
-            userIdList = Arrays.asList(userIdsList);
-        }).exceptionally(ex -> {
-            System.err.println("Failed to retrieve userIdsList: " + ex.getMessage());
-            return 0;
-        });
-        if(!userIdList.contains(id))
-            return 2;
-
-        //Check password 
-        String storedPassword = null;
-        getData("/" + id + "/password").thenAccept(getPassword -> {
-            storedPassword = getPassword;
-        }).exceptionally(ex -> {
-            System.out.println("Failed to read data: " + ex.getMessage());
-            return 0;
-        });
-        if(!storedPassword.equals(password))
-            return 3;
-
-        //Check autoLogin
-        boolean isSuccessfulAutoLogin = true;
-        if(autoLogin){
-            //Create autoLoginStr and autoLoginKey
-            SecureRandom random = new SecureRandom();
-            String randomStr = IntStream.range(0, 8) 
-                    .mapToObj(i -> String.valueOf(CHARSET.charAt(random.nextInt(CHARSET.length()))))
-                    .collect(Collectors.joining());
-            String randomKey = IntStream.range(0, 8)
-                    .mapToObj(i -> String.valueOf(CHARSET.charAt(random.nextInt(CHARSET.length()))))
-                    .collect(Collectors.joining());
-            String hashStr = BCrypt.hashpw(randomStr, BCrypt.gensalt(GENSALTNUM));
-            String hashKey = BCrypt.hashpw(randomKey, BCrypt.gensalt(GENSALTNUM));
-            //Set autoLoginStr and autoLoginKey to Firebase
-            setData("/" + id + "/autoLoginStr", hashStr).thenAccept(null)
-                .exceptionally(ex -> {
-                    System.out.println("Failed to write data: " + ex.getMessage());
-                    isSuccessfulAutoLogin = false;
-                });
-            setData("/" + id + "/autoLoginKey", randomKey).thenAccept(null)
-                .exceptionally(ex -> {
-                    System.out.println("Failed to write data: " + ex.getMessage());
-                    isSuccessfulAutoLogin = false;
-                });
-            //Successed autoLogin
-            if(isSuccessfulAutoLogin){
-                ObjectMapper objectMapper = new ObjectMapper();
-                AutoLoginData autoLoginData = new AutoLoginData(id, randomStr, hashKey);
-                objectMapper.writeValue(new File("autoLoginData.json"), autoLoginData);
-            }
-            else{   //Failed autoLogin
-                return 4;
-            }
-        }
-        return 1;
-    }
-
-    protected boolean autoLogin(){  //complete
-        ObjectMapper objectMapper = new ObjectMapper();
-        AutoLoginData autoLoginData = objectMapper.readValue(new File("autoLoginData.json"), AutoLoginData.class);
-
-        //Check autoLogin
-        //1. Check id
-        List<String> userIdList = null;
-        ref = FirebaseDatabase.getInstance().getReference("users");
-        getKeyArray(false).thenAccept(userIdsList -> {
-            userIdList = Arrays.asList(userIdsList);
-        }).exceptionally(ex -> {
-            System.err.println("Failed to retrieve userIdsList: " + ex.getMessage());
-            return 0;
-        });
-        if(!userIdList.contains(autoLoginData.getId()))
-            return false;
-        String id = autoLoginData.getId();
-        //2. Check autoLoginStr and autoLoginKey
-        String storedStrFB = null;
-        String storedKeyFB = null;
-        getData("/" + id + "/autoLoginStr").thenAccept(getStr -> {
-            storedStrFB = getStr;
-        }).exceptionally(ex -> {
-            System.out.println("Failed to read data: " + ex.getMessage());
-            return false;
-        });
-        getData("/" + id + "/autoLoginKey").thenAccept(getKey -> {
-            storedKeyFB = getKey;
-        }).exceptionally(ex -> {
-            System.out.println("Failed to read data: " + ex.getMessage());
-            return false;
-        });
-        if(BCrypt.checkpw(autoLoginData.getStr(), storedStrFB) && BCrypt.checkpw(storedKeyFB,autoLoginData.getKey())){   //autoLogin successed
-            userId = id;
-            return true;
-        }
-        return false;
-    }
-
-    protected int findPassword(String id, int questionIndex, String questionAns, String newPassword){   //complete
-        // check id
-        List<String> userIdList = null;
-        getKeyArray(false).thenAccept(getIdsList -> {
-            userIdList = Arrays.asList(getIdsList);
-        }).exceptionally(ex -> {
-            System.err.println("Failed to retrieve getIdsList: " + ex.getMessage());
-            return 0;
-        });
-        if(!userIdList.contains(id))
-            return 2;
-
-        // check question
-        int storedQuestionIndex = null;
-        String storedQuestionAns = null;
-        getData("/" + id + "/questionIndex").thenAccept(getIndex -> {
-            try {
-                storedQuestionIndex = Integer.parseInt(getIndex);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).exceptionally(ex -> {
-            System.out.println("Failed to read data: " + ex.getMessage());
-            return 0;
-        });
-        getData("/" + id + "/questionAns").thenAccept(getAns -> {
-            storedQuestionAns = getAns;
-        }).exceptionally(ex -> {
-            System.out.println("Failed to read data: " + ex.getMessage());
-            return 0;
+        ApiFuture<Void> apiFuture = ref.child(id).setValueAsync(userData);
+        toCompletableFuture(apiFuture).thenAccept(aVoid -> {
+            System.out.println("userData successfully created.");
+            future.complete(true);
+        }).exceptionally(e -> {
+            System.err.println("Failed to create userData: " + e.getMessage());
+            future.complete(false);
+            return null;
         });
 
-        // change password
-        if(storedQuestionAns.equals(questionAns)&&storedQuestionIndex==questionIndex){
-            setData("/" + id + "/password", newPassword).thenAccept(null)
-                .exceptionally(ex -> {
-                    System.out.println("Failed to write data: " + ex.getMessage());
-                    return 0;
-                });
-            return 1;
-        }
-        // failed to change password(=wrong question)
-        return 3;
+        return future;
     }
 
     protected CompletableFuture<String[]> getKeyArray(boolean isSchedules){ //complete
         CompletableFuture<String[]> future = new CompletableFuture<>();
         ref = FirebaseDatabase.getInstance().getReference("users");
-        if(isSchedules == true)
+        if(isSchedules == true && userId != null)
             ref.child(userId).child("schedules");
         List<String> keys = new ArrayList<>();
         ref.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -255,12 +122,174 @@ public class Register { //complete
         return future;
     }
 
-    protected CompletableFuture<String[]> getData(String path){ //complete
-        CompletableFuture<String[]> future = new CompletableFuture<>();
+    protected int login(String id, String password, boolean autoLogin){ //complete
+        //Check id
+        ref = FirebaseDatabase.getInstance().getReference("users");
+        CompletableFuture<List<String>> futureLS = getKeyArray(false)
+            .thenApply(userIdsList -> Arrays.asList(userIdsList)) 
+            .exceptionally(ex -> {
+                System.err.println("Failed to retrieve userIdsList: " + ex.getMessage());
+                return Collections.emptyList(); 
+            });
+
+        List<String> userIdList = futureLS.join(); 
+        if (userIdList.isEmpty()) 
+            return 0;
+        if(!userIdList.contains(id))
+            return 2;
+
+        //Check password 
+        
+        CompletableFuture<String> futureS = getData("/" + id + "/password",String.class)
+            .exceptionally(ex -> {
+                System.out.println("Failed to read data: " + ex.getMessage());
+                return null;
+            });
+        String storedPassword = futureS.join(); 
+
+        if(!storedPassword.equals(password))
+            return 3;
+
+        //Check autoLogin
+        if(autoLogin){
+            //Create autoLoginStr and autoLoginKey
+            SecureRandom random = new SecureRandom();
+            String randomStr = IntStream.range(0, 8) 
+                    .mapToObj(i -> String.valueOf(CHARSET.charAt(random.nextInt(CHARSET.length()))))
+                    .collect(Collectors.joining());
+            String randomKey = IntStream.range(0, 8)
+                    .mapToObj(i -> String.valueOf(CHARSET.charAt(random.nextInt(CHARSET.length()))))
+                    .collect(Collectors.joining());
+            String hashStr = BCrypt.hashpw(randomStr, BCrypt.gensalt(GENSALTNUM));
+            String hashKey = BCrypt.hashpw(randomKey, BCrypt.gensalt(GENSALTNUM));
+            //Set autoLoginStr and autoLoginKey to Firebase
+            CompletableFuture<Boolean> futureB = setData("/" + id + "/autoLoginStr", hashStr)
+                .exceptionally(ex -> {
+                    System.out.println("Failed to write data: " + ex.getMessage());
+                    return false;
+                });
+            boolean isSuccessful = futureB.join();
+            if(!isSuccessful)
+                return 4;
+            futureB = setData("/" + id + "/autoLoginKey", randomKey)
+                .exceptionally(ex -> {
+                    System.out.println("Failed to write data: " + ex.getMessage());
+                    return false;
+                });
+            isSuccessful = futureB.join();
+            //Successed autoLogin
+            if(!isSuccessful)
+                return 4;
+            else{
+                try{
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    AutoLoginData autoLoginData = new AutoLoginData(id, randomStr, hashKey);
+                    objectMapper.writeValue(new File("autoLoginData.json"), autoLoginData);
+                }catch(Exception e){
+                    e.printStackTrace();
+                    return 4;
+                }
+            }
+        }
+        return 1;
+    }
+
+    protected boolean autoLogin(){  //complete
+        ObjectMapper objectMapper = new ObjectMapper();
+        AutoLoginData autoLoginData;
+        try {
+            autoLoginData = objectMapper.readValue(new File("autoLoginData.json"), AutoLoginData.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }        
+        //Check autoLoginData
+        //1. Check id
+        ref = FirebaseDatabase.getInstance().getReference("users");
+        CompletableFuture<List<String>> futureLS = getKeyArray(false)
+            .thenApply(userIdsList -> Arrays.asList(userIdsList)) 
+            .exceptionally(ex -> {
+                System.err.println("Failed to retrieve userIdsList: " + ex.getMessage());
+                return Collections.emptyList(); 
+            });
+        List<String> userIdList = futureLS.join();
+        if(!userIdList.contains(autoLoginData.getId()))
+            return false;
+        String id = autoLoginData.getId();
+        //2. Check autoLoginStr and autoLoginKey
+        CompletableFuture<String> futureS=getData("/" + id + "/autoLoginStr",String.class)
+            .exceptionally(ex -> {
+                System.out.println("Failed to read data: " + ex.getMessage());
+                return null;
+            });
+        String storedStrFB = futureS.join();
+        futureS=getData("/" + id + "/autoLoginKey",String.class)
+            .exceptionally(ex -> {
+                System.out.println("Failed to read data: " + ex.getMessage());
+                return null;
+            });
+        String storedKeyFB = futureS.join();
+        if(BCrypt.checkpw(autoLoginData.getStr(), storedStrFB) && BCrypt.checkpw(storedKeyFB,autoLoginData.getKey())){   //autoLogin successed
+            userId = id;
+            return true;
+        }
+        return false;
+    }
+
+    protected int findPassword(String id, int questionIndex, String questionAns, String newPassword){   //complete
+        // check id
+        CompletableFuture<List<String>> futureLS = getKeyArray(false)
+            .thenApply(userIdsList -> Arrays.asList(userIdsList)) 
+            .exceptionally(ex -> {
+                System.err.println("Failed to retrieve userIdsList: " + ex.getMessage());
+                return Collections.emptyList(); 
+            });
+        List<String> userIdList = futureLS.join(); 
+        if (userIdList.isEmpty()) 
+            return 0;
+        if(!userIdList.contains(id))
+            return 2;
+
+        // check question
+        CompletableFuture<Integer> futureI = getData("/" + id + "/questionIndex",Integer.class)
+            .exceptionally(ex -> {
+                System.out.println("Failed to read data: " + ex.getMessage());
+                return -1;
+            });
+        int storedQuestionIndex = futureI.join();
+        CompletableFuture<String> futureS=getData("/" + id + "/questionAns",String.class)
+            .exceptionally(ex -> {
+                System.out.println("Failed to read data: " + ex.getMessage());
+                return null;
+            });
+        String storedQuestionAns = futureS.join();
+        if (storedQuestionIndex == -1 || storedQuestionAns == null) 
+            return 0;
+        // change password
+        if(storedQuestionAns.equals(questionAns)&&storedQuestionIndex==questionIndex){
+            CompletableFuture<Boolean> futureB=setData("/" + id + "/password", newPassword)
+                .exceptionally(ex -> {
+                    System.out.println("Failed to write data: " + ex.getMessage());
+                    return false;
+                });
+            boolean isSuccessful=futureB.join();
+            if (!isSuccessful) 
+                return 0;
+            else
+                return 1;
+        }
+        // failed to change password(=wrong question)
+        return 3;
+    }
+
+    
+
+    protected <T> CompletableFuture<T> getData(String path, Class<T> type){ //complete
+        CompletableFuture<T> future = new CompletableFuture<>();
         ref = FirebaseDatabase.getInstance().getReference("users");
         if(userId != null)
-            ref = FirebaseDatabase.getInstance().getReference(userId);
-        string[] keyParts = path.split("/");
+            ref = ref.child(userId);
+        String[] keyParts = path.split("/");
         for(String key : keyParts){
             ref = ref.child(key);
         }
@@ -268,10 +297,15 @@ public class Register { //complete
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (dataSnapshot.exists()) {
-                    future.complete(dataSnapshot.getValue(String[].class));
+                    try {
+                        T value = dataSnapshot.getValue(type); 
+                        future.complete(value);
+                    } catch (Exception e) {
+                        future.completeExceptionally(new Exception("Failed to cast data to " + type.getName(), e));
+                    }
                 } else {
-                    System.out.println("scheDatas are not exist.");
-                    future.complete(new String[0]);
+                    System.out.println("Data not found at: " + path);
+                    future.complete(null); // return null if data not found
                 }
             }
 
@@ -280,7 +314,6 @@ public class Register { //complete
                 future.completeExceptionally(new Exception(databaseError.getMessage()));
             }
         });
-        if(dataArray == null)
             
         return future;
     }
@@ -291,8 +324,8 @@ public class Register { //complete
         boolean addSchedule = false;
         ref = FirebaseDatabase.getInstance().getReference("users");
         if(userId != null)
-            ref = FirebaseDatabase.getInstance().getReference(userId);
-        string[] keyParts = path.split("/");
+            ref = ref.child(userId);
+        String[] keyParts = path.split("/");
         for(String key : keyParts){
             if(key.equals("schedules"))
                 addSchedule = true;
@@ -300,21 +333,20 @@ public class Register { //complete
         }
 
         if(addSchedule){
-            getData(path).thenAccept(storedSche -> {
-
+            getData(path,String[].class).thenAccept(storedSche -> {
                 try {
                     List<String> tempList = new ArrayList<>(Arrays.asList(storedSche));
                     tempList.add(data);
                     storedSche = tempList.toArray(new String[0]);
-
-                    ref.setValue(storedSche, (error, ref) -> {
-                        if (error != null) {
-                            System.out.println("setData failed: " + error.getMessage());
-                            future.complete(false);
-                        } else {
-                            System.out.println("setData succeeded: " + ref.getPath());
-                            future.complete(true);
-                        }
+                    
+                    ApiFuture<Void> apiFuture = ref.setValueAsync(storedSche);
+                    toCompletableFuture(apiFuture).thenAccept(aVoid -> {
+                        System.out.println("Data successfully written at " + path);
+                        future.complete(true);
+                    }).exceptionally(e -> {
+                        System.err.println("Failed to write data at " + path + ": " + e.getMessage());
+                        future.complete(false);
+                        return null;
                     });
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -326,50 +358,53 @@ public class Register { //complete
                 return null;
             });
         } else {
-            ref.setValue(data, (error, ref) -> {
-                if (error != null) {
-                    System.out.println("setData is failed: " + error.getMessage());
-                    future.complete(false);
-                } else {
-                    System.out.println("setData is successed: " + ref.getPath());
-                    future.complete(true);
-                }
+            ApiFuture<Void> apiFuture = ref.setValueAsync(data);
+            toCompletableFuture(apiFuture).thenAccept(aVoid -> {
+                System.out.println("Data successfully written at " + path);
+                future.complete(true);
+            }).exceptionally(e -> {
+                System.err.println("Failed to write data at " + path + ": " + e.getMessage());
+                future.complete(false);
+                return null;
             });
         }
         return future;
     }
 
-    protected CompletableFuture<boolean> delData(String path,int index){    //complete
+    protected CompletableFuture<Boolean> delData(String path,int index){    //complete
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         boolean isExistTestData = true;
         ref = FirebaseDatabase.getInstance().getReference("users");
-        string[] keyParts = path.split("/");
+        String[] keyParts = path.split("/");
         for(String key : keyParts){
-            if(!key.equlas("test")) // always need for testData
+            if(!key.equals("test")) // always need for testData
                 isExistTestData = false;
             ref = ref.child(key);
         }
         if(!isExistTestData){   // if testData is not exist, create testData. if failed, return false now.
-            boolean creatTestData = setData("test/", "This is test data.").thenAccept(null)
+            CompletableFuture<Boolean> t= setData("test/", "This is test data.")
                 .exceptionally(ex -> {
                     System.out.println("Failed to create test data: " + ex.getMessage());
-                    return future.complete(false);
+                    return false;
                 });
-            if(!creatTestData)
-                return future.complete(false);
+            boolean creatTestData=t.join();
+            if(!creatTestData){
+                future.complete(false);
+                return future;
+            }
         }
         
-        ref.removeValue()
-            .addOnSuccessListener(aVoid -> {
-                System.out.println("data successfully removed.");
-                future.complete(true);
-            })
-            .addOnFailureListener(e -> {
-                System.err.println("Failed to remove data: " + e.getMessage());
-                return future.complete(false);
-            });
-        
-        return future.complete(false);
+        ApiFuture<Void> apiFuture = ref.removeValueAsync();
+        toCompletableFuture(apiFuture).thenAccept(aVoid -> {
+            System.out.println("Data successfully deleted at " + path);
+            future.complete(true);
+        }).exceptionally(e -> {
+            System.err.println("Failed to delete data at " + path + ": " + e.getMessage());
+            future.complete(false);
+            return null;
+        });
+
+        return future;
     }
 
     private class AutoLoginData {   //used in autoLogin()
@@ -391,5 +426,23 @@ public class Register { //complete
         public String getKey() {
             return key;
         }
+    }
+    public void test(){
+        System.out.println("test");
+    }
+
+    public static void main(String[] args) {
+        System.out.println("Register Test Start");
+        Register registers = new Register();
+        Register.test();
+        //registers.register("testcase1", "thisispassword123", 2, "testAns");
+        //register.login("test", "test", false);
+        //register.autoLogin();
+        //register.findPassword("test", 0, "test", "test");
+        //register.getKeyArray(false);
+        //register.getData("/testid/password");
+        //register.setData("/test/password", "test");
+        //register.delData("/test", 0);
+        //System.out.println("Register Test End");
     }
 }

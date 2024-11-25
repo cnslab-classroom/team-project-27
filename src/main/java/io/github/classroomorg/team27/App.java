@@ -1,5 +1,5 @@
 package io.github.classroomorg.team27;
-import schedulerAlertApp.SchedulerInterface;
+import schedulerAlertApp.*;
 
 /**
  * Hello world!
@@ -7,8 +7,7 @@ import schedulerAlertApp.SchedulerInterface;
  */
 public class App 
 {
-    public static void main( String[] args )
-    {
+    public static void main( String[] args ){
         System.out.println( "Hello World!" );
     }
 }
