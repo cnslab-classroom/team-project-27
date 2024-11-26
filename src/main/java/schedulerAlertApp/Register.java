@@ -57,7 +57,7 @@ public class Register { //complete
         }
     }
 
-    private static <T> CompletableFuture<T> toCompletableFuture(ApiFuture<T> apiFuture) {
+    private static <T> CompletableFuture<T> toCompletableFuture(ApiFuture<T> apiFuture) {   //To be deleted
         CompletableFuture<T> future = new CompletableFuture<>();
         apiFuture.addListener(() -> {
             try {
@@ -69,7 +69,7 @@ public class Register { //complete
         return future;
     }
 
-    protected CompletableFuture<Boolean> register(String id, String password, int questionIndex, String questionAns){  //complete
+    protected CompletableFuture<Boolean> register(String id, String password, int questionIndex, String questionAns){  //debugging complete
         // Refer to the "users" path
         ref = FirebaseDatabase.getInstance().getReference("users");
         // Organize user register data
@@ -96,11 +96,11 @@ public class Register { //complete
         return future;
     }
 
-    protected CompletableFuture<String[]> getKeyArray(boolean isSchedules){ //complete
+    protected CompletableFuture<String[]> getKeyArray(boolean isSchedules){ //debugging complete
         CompletableFuture<String[]> future = new CompletableFuture<>();
         ref = FirebaseDatabase.getInstance().getReference("users");
-        if(isSchedules == true && userId != null)
-            ref.child(userId).child("schedules");
+        if(isSchedules == true && !userId.equals(null))
+            ref = ref.child(userId).child("schedules");
         List<String> keys = new ArrayList<>();
         ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -282,10 +282,8 @@ public class Register { //complete
         return 3;
     }
 
-    
-
-    protected <T> CompletableFuture<T> getData(String path, Class<T> type){ //complete
-        CompletableFuture<T> future = new CompletableFuture<>();
+    protected <T> CompletableFuture<T> getData(String path, Class<T> type){ //debugging complete
+        CompletableFuture<T> returnFuture = new CompletableFuture<>();
         ref = FirebaseDatabase.getInstance().getReference("users");
         if(userId != null)
             ref = ref.child(userId);
@@ -293,32 +291,62 @@ public class Register { //complete
         for(String key : keyParts){
             ref = ref.child(key);
         }
+        
+        CompletableFuture<DataSnapshot> dataFuture = getWorkData();
+        dataFuture.thenAccept(snapshot -> {
+            if (snapshot.exists()){
+                Object value = snapshot.getValue(String.class);
+                if(type.equals(List.class))
+                    value = stringToList((String) value);
+                System.out.print(value.toString());
+                returnFuture.complete((T) value);
+            }else{
+                System.out.println("No data found at the specified path.");
+                returnFuture.complete(null);
+            }
+        }).exceptionally(e -> {
+            System.err.println("Error reading data: " + e.getMessage());
+            returnFuture.completeExceptionally(e);
+            return null;
+        });
+        try {
+            dataFuture.get(); // wait for the asynchronous task to complete
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return returnFuture;
+    }
+    
+    private CompletableFuture<DataSnapshot> getWorkData(){ //debugging complete
+        CompletableFuture<DataSnapshot> future = new CompletableFuture<>();
         ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot.exists()) {
-                    try {
-                        T value = dataSnapshot.getValue(type); 
-                        future.complete(value);
-                    } catch (Exception e) {
-                        future.completeExceptionally(new Exception("Failed to cast data to " + type.getName(), e));
-                    }
-                } else {
-                    System.out.println("Data not found at: " + path);
-                    future.complete(null); // return null if data not found
-                }
+            public void onDataChange(DataSnapshot snapshot) {
+                future.complete(snapshot);
             }
-
+    
             @Override
-            public void onCancelled(DatabaseError databaseError) {
-                future.completeExceptionally(new Exception(databaseError.getMessage()));
+            public void onCancelled(DatabaseError error) {
+                future.completeExceptionally(new Exception("Firebase Error: " + error.getMessage()));
             }
         });
-            
         return future;
     }
 
-    protected CompletableFuture<Boolean> setData(String path, String data){ //complete
+    public static List stringToList(String listAsString) { //debugging complete
+        // Remove square brackets
+        String trimmedString = listAsString.substring(1, listAsString.length() - 1);
+    
+        // Handle empty case
+        if (trimmedString.isEmpty()) {
+            return new ArrayList<>();
+        }
+    
+        // Split by ", " and return as List
+        return new ArrayList<>(Arrays.asList(trimmedString.split(", ")));
+    }
+
+    protected CompletableFuture<Boolean> setData(String path, String data){ //debugging complete
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         
         boolean addSchedule = false;
@@ -333,77 +361,218 @@ public class Register { //complete
         }
 
         if(addSchedule){
-            getData(path,String[].class).thenAccept(storedSche -> {
+            CompletableFuture<DataSnapshot> dataFuture = getWorkData();
+            String listToString = null;
+            List<String> list = new ArrayList<>();
+            CompletableFuture<String> stringFuture = dataFuture.thenApply(snapshot -> {
+                if (snapshot.exists()) {
+                    return snapshot.getValue(String.class); 
+                } else {
+                    System.err.println("No data found in snapshot");
+                    return null;
+                }
+            });
+            try {
+                DataSnapshot snapshot = dataFuture.join(); // wait for the asynchronous task to complete
+                if (snapshot.exists()) {
+                    listToString = snapshot.getValue(String.class); // Convert DataSnapshot to String
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            CompletableFuture<Boolean> setFuture;
+
+            if(listToString != null){
+                list = stringToList(listToString);
+                list.add(data);
+                setFuture = setWorkData(list.toString());
+                setFuture.thenApply(result -> {
+                    future.complete(true);
+                    return true;
+                }).exceptionally(e -> {
+                    System.err.println("Error setting password: " + e.getMessage());
+                    future.complete(false);
+                    return false;
+                });
                 try {
-                    List<String> tempList = new ArrayList<>(Arrays.asList(storedSche));
-                    tempList.add(data);
-                    storedSche = tempList.toArray(new String[0]);
-                    
-                    ApiFuture<Void> apiFuture = ref.setValueAsync(storedSche);
-                    toCompletableFuture(apiFuture).thenAccept(aVoid -> {
-                        System.out.println("Data successfully written at " + path);
-                        future.complete(true);
-                    }).exceptionally(e -> {
-                        System.err.println("Failed to write data at " + path + ": " + e.getMessage());
-                        future.complete(false);
-                        return null;
-                    });
+                    setFuture.get(); // wait for the asynchronous task to complete
                 } catch (Exception e) {
                     e.printStackTrace();
                     future.complete(false);
                 }
-            }).exceptionally(ex -> {
-                System.out.println("Failed to read data: " + ex.getMessage());
-                future.complete(false);
-                return null;
-            });
+            }
+            else{
+                list.add(data);
+                setFuture = setWorkData(list.toString());
+                setFuture.thenApply(result -> {
+                    future.complete(true);
+                    return true;
+                }).exceptionally(e -> {
+                    System.err.println("Error setting password: " + e.getMessage());
+                    future.complete(false);
+                    return false;
+                });
+                try {
+                    setFuture.get(); // wait for the asynchronous task to complete
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    future.complete(false);
+                }
+            }
         } else {
-            ApiFuture<Void> apiFuture = ref.setValueAsync(data);
-            toCompletableFuture(apiFuture).thenAccept(aVoid -> {
-                System.out.println("Data successfully written at " + path);
+            CompletableFuture<Boolean> setFuture = setWorkData(data);
+            setFuture.thenApply(result -> {
                 future.complete(true);
+                return true;
             }).exceptionally(e -> {
-                System.err.println("Failed to write data at " + path + ": " + e.getMessage());
+                System.err.println("Error setting password: " + e.getMessage());
                 future.complete(false);
-                return null;
+                return false;
             });
+            try {
+                setFuture.get(); // wait for the asynchronous task to complete
+            } catch (Exception e) {
+                e.printStackTrace();
+                future.complete(false);
+            }
         }
         return future;
     }
 
-    protected CompletableFuture<Boolean> delData(String path,int index){    //complete
+    private CompletableFuture<Boolean> setWorkData(String data){ //debugging complete
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        
+        ref.setValue(data, (error, ref) -> {
+            if (error == null) {
+                future.complete(true); 
+            } else {
+                System.err.println("Error setting data: " + error.getMessage());
+                future.completeExceptionally(new Exception("Firebase Error: " + error.getMessage()));
+            }
+        });
+
+        return future;
+    }
+
+    protected CompletableFuture<Boolean> delData(String path,int index){    //debugging complete
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         boolean isExistTestData = true;
+        boolean isSchedules = false;
         ref = FirebaseDatabase.getInstance().getReference("users");
         String[] keyParts = path.split("/");
         for(String key : keyParts){
             if(!key.equals("test")) // always need for testData
                 isExistTestData = false;
+            if(key.equals("schedules"))
+                isSchedules = true;
             ref = ref.child(key);
         }
         if(!isExistTestData){   // if testData is not exist, create testData. if failed, return false now.
-            CompletableFuture<Boolean> t= setData("test/", "This is test data.")
-                .exceptionally(ex -> {
+            CompletableFuture<Boolean> futureB= setData("default", "This is default data.");
+            futureB.thenApply(result -> {
+                return true;
+                }).exceptionally(ex -> {
                     System.out.println("Failed to create test data: " + ex.getMessage());
                     return false;
                 });
-            boolean creatTestData=t.join();
-            if(!creatTestData){
+            try {
+                futureB.get(); // wait for the asynchronous task to complete
+            } catch (Exception e) {
+                e.printStackTrace();
                 future.complete(false);
                 return future;
             }
         }
-        
-        ApiFuture<Void> apiFuture = ref.removeValueAsync();
-        toCompletableFuture(apiFuture).thenAccept(aVoid -> {
-            System.out.println("Data successfully deleted at " + path);
-            future.complete(true);
-        }).exceptionally(e -> {
-            System.err.println("Failed to delete data at " + path + ": " + e.getMessage());
-            future.complete(false);
-            return null;
-        });
 
+        CompletableFuture<List> getFuture;
+        List<String> testArray = new ArrayList<>();
+        if(isSchedules){
+            getFuture = getData(path, List.class);
+            getFuture.thenRun(() -> {
+                System.out.println("Password updated successfully.");
+            }).exceptionally(e -> {
+                System.err.println("Error setting password: " + e.getMessage());
+                return null;
+            });
+            try {
+                testArray=getFuture.get(); // wait for the asynchronous task to complete
+            } catch (Exception e) {
+                e.printStackTrace();
+                future.complete(false);
+            }
+        }
+
+        CompletableFuture<Boolean> delFuture = delWorkData();
+        delFuture.thenApply(result -> {
+            future.complete(true);
+            return true;
+        }).exceptionally(e -> {
+            System.err.println("Error deleting data: " + e.getMessage());
+            future.complete(false);
+            return false;
+        });
+        try {
+            delFuture.get(); // wait for the asynchronous task to complete
+        } catch (Exception e) {
+            e.printStackTrace();
+            future.complete(false);
+        }
+        //midterm inspection
+        boolean middleSuccess = true;
+        try {
+            middleSuccess = future.get();
+        } catch (Exception e) {
+            e.printStackTrace();
+            middleSuccess = false;
+        }
+        if(middleSuccess == false)
+            return future;
+        //Delete specific index
+        if(isSchedules && index != -1){
+            if (index >= 0 && index < testArray.size()) {
+                testArray.remove(index);
+            } else {
+                System.err.println("Invalid index: " + index + ". List size: " + testArray.size());
+                future.complete(false);
+                return future;
+            }
+            CompletableFuture<Boolean> setFuture = setWorkData(testArray.toString());
+            setFuture.thenApply(result -> {
+                future.complete(true);
+                return true;
+            }).exceptionally(e -> {
+                System.err.println("Error setting password: " + e.getMessage());
+                future.complete(false);
+                return false;
+            });
+            try {
+                setFuture.get(); // wait for the asynchronous task to complete
+            } catch (Exception e) {
+                e.printStackTrace();
+                future.complete(false);
+            }
+        }
+
+        return future;
+    }
+
+    private CompletableFuture<Boolean> delWorkData(){ //debugging complete
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        
+        ref.removeValue((databaseError, databaseReference) -> {
+            if (databaseError == null) {
+                System.out.println("Data deleted successfully!");
+                future.complete(true);
+            } else {
+                System.err.println("Error deleting data: " + databaseError.getMessage());
+                future.complete(false);
+            }
+        });
+        try{
+            future.get(); // wait for the asynchronous task to complete
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return future;
     }
 
@@ -427,14 +596,93 @@ public class Register { //complete
             return key;
         }
     }
-    public void test(){
-        System.out.println("test");
+
+    public void setUserId(String id){
+        this.userId = id;
+        System.out.println("userId set to: " + id);
     }
 
     public static void main(String[] args) {
         System.out.println("Register Test Start");
         Register registers = new Register();
-        Register.test();
+        CompletableFuture<Boolean> future = registers.register("yourmrmrm", "hahahah", 21, "wtff");
+        future.thenApply(result -> {
+            System.out.println("Password updated successfully.");
+            return true;
+        }).exceptionally(e -> {
+            System.err.println("Error setting password: " + e.getMessage());
+            return false;
+        });
+        try {
+            future.get(); // wait for the asynchronous task to complete
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        /*
+        registers.setUserId("abcd");
+        CompletableFuture<String[]> future = registers.getKeyArray(true);
+        future.thenAccept(keys -> {
+            for (String key : keys) {
+                System.out.println("Key: " + key);
+            }
+        }).exceptionally(e -> {
+            System.err.println("Error getting keys: " + e.getMessage());
+            return null;
+        });
+        try {
+            future.get(); // wait for the asynchronous task to complete
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        */
+        /*
+        CompletableFuture<Boolean> setFuture = registers.setData("abcd/schedules/20241121", "dw1");
+        setFuture.thenApply(result -> {
+            System.out.println("Password updated successfully.");
+            return true;
+        }).exceptionally(e -> {
+            System.err.println("Error setting password: " + e.getMessage());
+            return false;
+        });
+        try {
+            setFuture.get(); // 비동기 작업이 끝날 때까지 대기
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        */
+        /*
+        CompletableFuture<List> getFuture = registers.getData("test123/a1/a2/a3", List.class);
+        List<String> testArray = new ArrayList<>();
+        getFuture.thenRun(() -> {
+            System.out.println("Password updated successfully.");
+        }).exceptionally(e -> {
+            System.err.println("Error setting password: " + e.getMessage());
+            return null;
+        });
+        try {
+            testArray=getFuture.get(); // 비동기 작업이 끝날 때까지 대기
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        for(String s : testArray)
+            System.out.println("Data retrieved: " + s);
+        */
+        /* 
+        CompletableFuture<Boolean> delFuture = registers.delData("abcd/schedules/20241127", 2);
+        delFuture.thenApply(result -> {
+            System.out.println("Password updated successfully.");
+            return true;
+        }).exceptionally(e -> {
+            System.err.println("Error setting password: " + e.getMessage());
+            return false;
+        });
+        try {
+            delFuture.get(); // wait for the asynchronous task to complete
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        */
+        System.out.println("Register Test End");
         //registers.register("testcase1", "thisispassword123", 2, "testAns");
         //register.login("test", "test", false);
         //register.autoLogin();

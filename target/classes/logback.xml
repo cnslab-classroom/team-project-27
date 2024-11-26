@@ -1,0 +1,10 @@
+<configuration>
+    <!-- 기본 로깅 레벨 설정 -->
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+
+    <!-- Firebase 관련 디버깅 로그 레벨 조정 -->
+    <logger name="com.google.firebase" level="WARN" />
+    <logger name="io.netty" level="WARN" />
+</configuration>
