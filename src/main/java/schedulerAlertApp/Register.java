@@ -4,6 +4,7 @@ package schedulerAlertApp;
 import com.google.firebase.database.DatabaseReference;  //Firebase library
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.api.core.ApiFuture;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.ValueEventListener; 
@@ -25,6 +26,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -55,9 +57,10 @@ public class Register { //complete
         } catch (Exception e) {
             e.printStackTrace();
         }
+        System.out.println("Register object created end");
     }
 
-    private static <T> CompletableFuture<T> toCompletableFuture(ApiFuture<T> apiFuture) {   //To be deleted
+    private static <T> CompletableFuture<T> toCompletableFuture(ApiFuture<T> apiFuture) {   //debugging complete
         CompletableFuture<T> future = new CompletableFuture<>();
         apiFuture.addListener(() -> {
             try {
@@ -122,34 +125,48 @@ public class Register { //complete
         return future;
     }
 
-    protected int login(String id, String password, boolean autoLogin){ //complete
+    protected int login(String id, String password, boolean autoLogin){ //debugging complete
+        System.out.println("Login Start");
         //Check id
-        ref = FirebaseDatabase.getInstance().getReference("users");
-        CompletableFuture<List<String>> futureLS = getKeyArray(false)
-            .thenApply(userIdsList -> Arrays.asList(userIdsList)) 
-            .exceptionally(ex -> {
-                System.err.println("Failed to retrieve userIdsList: " + ex.getMessage());
-                return Collections.emptyList(); 
-            });
-
-        List<String> userIdList = futureLS.join(); 
+        List<String> userIdList=new ArrayList<>();
+        CompletableFuture<String[]> futureId = getKeyArray(false);
+        futureId.thenAccept(keys -> {
+            System.out.println("Keys class:" + keys.getClass().getName());
+        }).exceptionally(e -> {
+            System.err.println("Error getting keys: " + e.getMessage());
+            return null;
+        });
+        try {
+            userIdList=Arrays.asList(futureId.get()); // wait for the asynchronous task to complete
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
         if (userIdList.isEmpty()) 
             return 0;
         if(!userIdList.contains(id))
             return 2;
-
-        //Check password 
         
-        CompletableFuture<String> futureS = getData("/" + id + "/password",String.class)
-            .exceptionally(ex -> {
-                System.out.println("Failed to read data: " + ex.getMessage());
-                return null;
-            });
-        String storedPassword = futureS.join(); 
-
-        if(!storedPassword.equals(password))
+        System.out.println("Id checked");
+        //Check password 
+        CompletableFuture<String> futureS = getData("/" + id + "/password",String.class);
+        String storedPassword;
+        futureS.thenRun(() -> {
+            System.out.println("Password updated successfully.");
+        }).exceptionally(e -> {
+            System.err.println("Error setting password: " + e.getMessage());
+            return null;
+        });
+        try {
+            storedPassword=futureS.get(); // 비동기 작업이 끝날 때까지 대기
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+        if(!BCrypt.checkpw(password, storedPassword))
             return 3;
-
+        userId = id;    //Login successed
+        System.out.println("Password checked");
         //Check autoLogin
         if(autoLogin){
             //Create autoLoginStr and autoLoginKey
@@ -163,21 +180,27 @@ public class Register { //complete
             String hashStr = BCrypt.hashpw(randomStr, BCrypt.gensalt(GENSALTNUM));
             String hashKey = BCrypt.hashpw(randomKey, BCrypt.gensalt(GENSALTNUM));
             //Set autoLoginStr and autoLoginKey to Firebase
-            CompletableFuture<Boolean> futureB = setData("/" + id + "/autoLoginStr", hashStr)
-                .exceptionally(ex -> {
-                    System.out.println("Failed to write data: " + ex.getMessage());
-                    return false;
-                });
-            boolean isSuccessful = futureB.join();
-            if(!isSuccessful)
-                return 4;
-            futureB = setData("/" + id + "/autoLoginKey", randomKey)
-                .exceptionally(ex -> {
-                    System.out.println("Failed to write data: " + ex.getMessage());
-                    return false;
-                });
-            isSuccessful = futureB.join();
-            //Successed autoLogin
+            boolean isSuccessful = false;
+            CompletableFuture<Boolean> FutureAuto1 = setData("/autoLoginStr", hashStr);
+            FutureAuto1.thenApply(result -> {
+                return true;
+            }).exceptionally(e -> {
+                System.err.println("Error setting password: " + e.getMessage());
+                return false;
+            });
+            CompletableFuture<Boolean> FutureAuto2 =setData("/autoLoginKey", randomKey);
+            FutureAuto2.thenApply(result -> {
+                return true;
+            }).exceptionally(e -> {
+                System.err.println("Error setting password: " + e.getMessage());
+                return false;
+            });
+            try {
+                if(FutureAuto1.get()&&FutureAuto2.get()) // wait for the asynchronous task to complete
+                    isSuccessful = true;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             if(!isSuccessful)
                 return 4;
             else{
@@ -194,7 +217,7 @@ public class Register { //complete
         return 1;
     }
 
-    protected boolean autoLogin(){  //complete
+    protected boolean autoLogin(){  //debugging complete
         ObjectMapper objectMapper = new ObjectMapper();
         AutoLoginData autoLoginData;
         try {
@@ -205,81 +228,127 @@ public class Register { //complete
         }        
         //Check autoLoginData
         //1. Check id
-        ref = FirebaseDatabase.getInstance().getReference("users");
-        CompletableFuture<List<String>> futureLS = getKeyArray(false)
-            .thenApply(userIdsList -> Arrays.asList(userIdsList)) 
-            .exceptionally(ex -> {
-                System.err.println("Failed to retrieve userIdsList: " + ex.getMessage());
-                return Collections.emptyList(); 
-            });
-        List<String> userIdList = futureLS.join();
+        List<String> userIdList=new ArrayList<>();
+        CompletableFuture<String[]> futureId = getKeyArray(false);
+        futureId.thenAccept(keys -> {
+            System.out.println("Keys class:" + keys.getClass().getName());
+        }).exceptionally(e -> {
+            System.err.println("Error getting keys: " + e.getMessage());
+            return null;
+        });
+        try {
+            userIdList=Arrays.asList(futureId.get()); // wait for the asynchronous task to complete
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
         if(!userIdList.contains(autoLoginData.getId()))
             return false;
         String id = autoLoginData.getId();
         //2. Check autoLoginStr and autoLoginKey
-        CompletableFuture<String> futureS=getData("/" + id + "/autoLoginStr",String.class)
-            .exceptionally(ex -> {
-                System.out.println("Failed to read data: " + ex.getMessage());
-                return null;
-            });
-        String storedStrFB = futureS.join();
-        futureS=getData("/" + id + "/autoLoginKey",String.class)
-            .exceptionally(ex -> {
-                System.out.println("Failed to read data: " + ex.getMessage());
-                return null;
-            });
-        String storedKeyFB = futureS.join();
+        String storedStrFB;
+        String storedKeyFB;
+        CompletableFuture<String> futureS1 = getData("/" + id + "/autoLoginStr",String.class);
+        CompletableFuture<String> futureS2 = getData("/" + id + "/autoLoginKey",String.class);
+        futureS1.thenRun(() -> {
+            System.out.println("Password updated successfully.");
+        }).exceptionally(e -> {
+            System.err.println("Error setting password: " + e.getMessage());
+            return null;
+        });
+        futureS2.thenRun(() -> {
+            System.out.println("Password updated successfully.");
+        }).exceptionally(e -> {
+            System.err.println("Error setting password: " + e.getMessage());
+            return null;
+        });
+        try {
+            storedStrFB=futureS1.get(); // wait for the asynchronous task to complete
+            storedKeyFB=futureS2.get(); // wait for the asynchronous task to complete
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        
         if(BCrypt.checkpw(autoLoginData.getStr(), storedStrFB) && BCrypt.checkpw(storedKeyFB,autoLoginData.getKey())){   //autoLogin successed
             userId = id;
+            System.out.println("AutoLogin successed: userId = " + userId);
             return true;
         }
         return false;
     }
 
-    protected int findPassword(String id, int questionIndex, String questionAns, String newPassword){   //complete
+    protected int findPassword(String id, int questionIndex, String questionAns, String newPassword){   //debugging complete
         // check id
-        CompletableFuture<List<String>> futureLS = getKeyArray(false)
-            .thenApply(userIdsList -> Arrays.asList(userIdsList)) 
-            .exceptionally(ex -> {
-                System.err.println("Failed to retrieve userIdsList: " + ex.getMessage());
-                return Collections.emptyList(); 
-            });
-        List<String> userIdList = futureLS.join(); 
+        List<String> userIdList=new ArrayList<>();
+        CompletableFuture<String[]> futureId = getKeyArray(false);
+        futureId.thenAccept(keys -> {
+            System.out.println("Keys class:" + keys.getClass().getName());
+        }).exceptionally(e -> {
+            System.err.println("Error getting keys: " + e.getMessage());
+            return null;
+        });
+        try {
+            userIdList=Arrays.asList(futureId.get()); // wait for the asynchronous task to complete
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
         if (userIdList.isEmpty()) 
             return 0;
         if(!userIdList.contains(id))
             return 2;
-
+        
+        System.out.println("Id checked");
         // check question
-        CompletableFuture<Integer> futureI = getData("/" + id + "/questionIndex",Integer.class)
-            .exceptionally(ex -> {
-                System.out.println("Failed to read data: " + ex.getMessage());
-                return -1;
-            });
-        int storedQuestionIndex = futureI.join();
-        CompletableFuture<String> futureS=getData("/" + id + "/questionAns",String.class)
+        CompletableFuture<Long> futureI = getData("/" + id + "/questionIndex",Long.class);
+        futureI.exceptionally(ex -> {
+            System.out.println("Failed to read data: " + ex.getMessage());
+            return Long.valueOf(-1);
+        }).thenAccept(result -> {});
+        int storedQuestionIndex=-1;
+        try{
+            storedQuestionIndex=futureI.get().intValue(); // wait for the asynchronous task to complete
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+        CompletableFuture<String> futureS=getData("/" + id + "/questionAns",String.class);
+        futureS.thenAccept(result -> {})
             .exceptionally(ex -> {
                 System.out.println("Failed to read data: " + ex.getMessage());
                 return null;
             });
-        String storedQuestionAns = futureS.join();
-        if (storedQuestionIndex == -1 || storedQuestionAns == null) 
+        String storedQuestionAns=null;
+        try {
+            storedQuestionAns= futureS.get(); // wait for the asynchronous task to complete
+        } catch (Exception e) {
+            e.printStackTrace();
             return 0;
-        // change password
-        if(storedQuestionAns.equals(questionAns)&&storedQuestionIndex==questionIndex){
-            CompletableFuture<Boolean> futureB=setData("/" + id + "/password", newPassword)
-                .exceptionally(ex -> {
-                    System.out.println("Failed to write data: " + ex.getMessage());
-                    return false;
-                });
-            boolean isSuccessful=futureB.join();
-            if (!isSuccessful) 
-                return 0;
-            else
-                return 1;
         }
-        // failed to change password(=wrong question)
-        return 3;
+        if (storedQuestionIndex == -1 || storedQuestionAns.equals(null)) 
+            return 0;   //other error
+        else if(storedQuestionIndex != questionIndex || !storedQuestionAns.equals(questionAns))
+            return 3;   //wrong question answer
+        // change password
+        
+        CompletableFuture<Boolean> futureB=setData("/" + id + "/password", BCrypt.hashpw(newPassword, BCrypt.gensalt(GENSALTNUM)));
+        futureB.thenApply(result -> {
+            return true;
+            }).exceptionally(ex -> {
+                System.out.println("Failed to write data: " + ex.getMessage());
+                return false;
+            });
+        boolean isSuccessful=false;
+        try{
+            isSuccessful = futureB.get(); // wait for the asynchronous task to complete
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+        if (isSuccessful) 
+            return 1;
+        return 0;
     }
 
     protected <T> CompletableFuture<T> getData(String path, Class<T> type){ //debugging complete
@@ -295,10 +364,14 @@ public class Register { //complete
         CompletableFuture<DataSnapshot> dataFuture = getWorkData();
         dataFuture.thenAccept(snapshot -> {
             if (snapshot.exists()){
-                Object value = snapshot.getValue(String.class);
-                if(type.equals(List.class))
-                    value = stringToList((String) value);
-                System.out.print(value.toString());
+                Object value;
+                if(type.equals(Long.class))
+                    value = snapshot.getValue(Long.class);
+                else{
+                    value = snapshot.getValue(String.class);
+                    if(type.equals(List.class))
+                        value = stringToList((String) value);
+                }
                 returnFuture.complete((T) value);
             }else{
                 System.out.println("No data found at the specified path.");
@@ -576,10 +649,16 @@ public class Register { //complete
         return future;
     }
 
-    private class AutoLoginData {   //used in autoLogin()
+    private static class AutoLoginData {   //used in autoLogin()
         private final String id;
         private final String str;
         private final String key;
+
+        public AutoLoginData() {
+            this.id = null;
+            this.str = null;
+            this.key = null;
+        }
 
         public AutoLoginData(String id, String str, String key) {
             this.id = id;
@@ -597,14 +676,66 @@ public class Register { //complete
         }
     }
 
-    public void setUserId(String id){
-        this.userId = id;
-        System.out.println("userId set to: " + id);
+    public String getUserId(){
+        return userId;
+    }
+    public void printRef(){
+        ref = FirebaseDatabase.getInstance().getReference("users");
+        System.out.println(ref.toString());
+    }
+    public void test(){
+        ref = FirebaseDatabase.getInstance().getReference("users");
+        System.out.println("Reference path: " + ref.toString());
+        ref.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists()) {
+                    System.out.println("Data: " + dataSnapshot.getValue());
+                } else {
+                    System.out.println("No data found at this reference.");
+                }
+            }
+        
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                System.err.println("Error: " + databaseError.getMessage());
+            }
+        });
     }
 
     public static void main(String[] args) {
         System.out.println("Register Test Start");
         Register registers = new Register();
+        /*
+        CompletableFuture<Boolean> future = registers.register("plzLastTest", "holymoly", 3, "hahaplz");
+        future.thenApply(result -> {
+            System.out.println("Password updated successfully.");
+            return true;
+        }).exceptionally(e -> {
+            System.err.println("Error setting password: " + e.getMessage());
+            return false;
+        });
+        try {
+            future.get(); // wait for the asynchronous task to complete
+        } catch (Exception e) {
+            e.printStackTrace();
+        }*/
+        /*
+        int result;
+        result=registers.login("plzLastTest", "holymoly", true);
+        System.out.println("Login result: " + result);
+        */
+        
+        boolean result;
+        result=registers.autoLogin();
+        System.out.println("AutoLogin result: " + result);
+        
+        /*
+        int result;
+        result=registers.findPassword("testid1", 1, "testAns1", "testnewpassword");
+        System.out.println("FindPassword result: " + result);
+        */
+        /*
         CompletableFuture<Boolean> future = registers.register("yourmrmrm", "hahahah", 21, "wtff");
         future.thenApply(result -> {
             System.out.println("Password updated successfully.");
@@ -617,9 +748,48 @@ public class Register { //complete
             future.get(); // wait for the asynchronous task to complete
         } catch (Exception e) {
             e.printStackTrace();
-        }
+        }*/
         /*
-        registers.setUserId("abcd");
+        try {
+            // 비동기 작업을 기다림
+            List<String> userIdList=new ArrayList<>();
+            userIdList = Arrays.asList(registers.getKeyArray(false).join());
+            
+            // Keys 출력
+            userIdList.forEach(key -> System.out.println("Key: " + key));
+        
+            // userIdList 출력
+            System.out.println("userIdList: " + userIdList);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        */
+        /*
+        List<String> userIdList=new ArrayList<>();
+        CompletableFuture<String[]> futureId = registers.getKeyArray(false);
+        futureId.thenAccept(keys -> {
+            for (String key : keys) {
+                System.out.println("Key: " + key); 
+            }
+        }).exceptionally(e -> {
+            System.err.println("Error getting keys: " + e.getMessage());
+            return null;
+        });
+        try{
+            Thread.sleep(5000);
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+        try {
+            futureId.join();
+            userIdList=Arrays.asList(futureId.get());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("userIdList: " + userIdList);
+        */
+        /*
         CompletableFuture<String[]> future = registers.getKeyArray(true);
         future.thenAccept(keys -> {
             for (String key : keys) {
@@ -636,20 +806,33 @@ public class Register { //complete
         }
         */
         /*
-        CompletableFuture<Boolean> setFuture = registers.setData("abcd/schedules/20241121", "dw1");
+        CompletableFuture<Boolean> setFuture = registers.setData("plzLastTest/schedules/20241128", "testing3");
         setFuture.thenApply(result -> {
-            System.out.println("Password updated successfully.");
             return true;
         }).exceptionally(e -> {
             System.err.println("Error setting password: " + e.getMessage());
             return false;
         });
         try {
-            setFuture.get(); // 비동기 작업이 끝날 때까지 대기
+            setFuture.get(10, TimeUnit.SECONDS); // 비동기 작업이 끝날 때까지 대기
+        } catch (Exception e) {
+            e.printStackTrace();
+        }*/
+        /*
+        CompletableFuture<String> getFuture = registers.getData("testid/password", String.class);
+        String result=new String();
+        getFuture.thenRun(() -> {
+            System.out.println("Password updated successfully.");
+        }).exceptionally(e -> {
+            System.err.println("Error setting password: " + e.getMessage());
+            return null;
+        });
+        try {
+            result=getFuture.get(); // 비동기 작업이 끝날 때까지 대기
         } catch (Exception e) {
             e.printStackTrace();
         }
-        */
+        System.out.println("Data retrieved: " + result);*/
         /*
         CompletableFuture<List> getFuture = registers.getData("test123/a1/a2/a3", List.class);
         List<String> testArray = new ArrayList<>();
