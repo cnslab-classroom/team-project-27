@@ -16,8 +16,15 @@ public class SchedulerInterface {
     private JPanel mainPanel;
     private CardLayout cardLayout;
 
+	private JPanel mainScreenPanel;
+    private JPanel addScheScreenPanel;
+    private JPanel specifyScheListPanel;
+	private JPanel delScheScreenPanel;
+
     private Register user;
     private Scheduler scheduler;
+
+    private String selectedDate; // 일정 삭제 날짜 저장용
 
     public SchedulerInterface(Register user, Scheduler scheduler) {
         this.user = user;
@@ -26,7 +33,7 @@ public class SchedulerInterface {
         // JFrame 설정
         frame = new JFrame("Scheduler Interface");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(1200, 800);
+        frame.setSize(800, 600);
         frame.setLocationRelativeTo(null);
 		frame.setResizable(false);
 
@@ -37,38 +44,43 @@ public class SchedulerInterface {
         // 화면 추가
         mainPanel.add(autoLoginScreen(), "AutoLogin");
         mainPanel.add(loginScreen(), "Login");
-        mainPanel.add(mainScreen(), "Main");
         mainPanel.add(registerScreen(), "Register");
         mainPanel.add(findPasswordScreen(), "FindPassword");
-        mainPanel.add(addScheScreen(), "AddSchedule");
-
         // 메인 패널을 프레임에 추가
         frame.add(mainPanel);
+		frame.setVisible(true);
 
         // 2초 뒤 자동 로그인 실행
         javax.swing.Timer timer = new javax.swing.Timer(2000, e -> {
             if (user.autoLogin()) {
-                cardLayout.show(mainPanel, "Main"); // 메인 화면으로 전환
+                initializePostLoginScreens(); // 로그인 후 화면들 초기화
+                showScreen("Main");
                 frame.setSize(1200, 800);
             } else {
-                cardLayout.show(mainPanel, "Login"); // 로그인 화면으로 전환
+                showScreen("Login");
             }
         });
         timer.setRepeats(false); // 한 번만 실행되도록 설정
         timer.start();
+    }
 
-        frame.setVisible(true);
+	 // 로그인 후 화면들을 초기화하는 메서드
+	 private void initializePostLoginScreens() {
+        mainScreenPanel = mainScreen();
+        addScheScreenPanel = addScheScreen();
+        specifyScheListPanel = showSpecifyScheListScreen();
+		delScheScreenPanel = delScheScreen();
+
+        mainPanel.add(mainScreenPanel, "Main");
+        mainPanel.add(addScheScreenPanel, "AddSchedule");
+        mainPanel.add(specifyScheListPanel, "SpecifyScheList");
+		mainPanel.add(delScheScreenPanel, "DeleteSchedule");
     }
 
     // 오토로그인 화면
 	public JPanel autoLoginScreen() {
 	    JPanel panel = new JPanel();
 	    panel.setLayout(new BorderLayout());
-
-	    // 상단: 제목
-	    JLabel titleLabel = new JLabel("자동로그인 화면", JLabel.CENTER);
-	    titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
-	    panel.add(titleLabel, BorderLayout.NORTH);
 
 	    // 중앙: 로딩 메시지와 프로그레스 바
 	    JPanel centerPanel = new JPanel();
@@ -164,8 +176,9 @@ public class SchedulerInterface {
 	            int loginResult = user.login(id, password, autoLogin);
 	
 	            if (loginResult == 1) {
-	                showScreen("Main");
-	               frame.setSize(1200,800);
+					initializePostLoginScreens(); // 로그인 성공 시 화면들 초기화
+					showScreen("Main");
+					frame.setSize(1200, 800);
 	            } else if (loginResult == 2) {
 	                JOptionPane.showMessageDialog(panel, "ID가 존재하지 않습니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
 	            } else if (loginResult == 3) {
@@ -409,7 +422,7 @@ public class SchedulerInterface {
         return panel;
     }
     
-	   public JPanel mainScreen() {
+	public JPanel mainScreen() {
 	        // 메인 패널 설정
 	        JPanel mainPanel = new JPanel();
 	        mainPanel.setLayout(null);
@@ -425,13 +438,13 @@ public class SchedulerInterface {
 
 	        // 좌측 시계 이미지
 	        JLabel clockLabel = new JLabel();
-	        clockLabel.setIcon(new ImageIcon("src/images/clock.png")); // 시계 이미지 파일 경로
+			clockLabel.setIcon(new ImageIcon(getClass().getResource("/images/clock.png")));
 	        clockLabel.setBounds(70, 180, 150, 150);
 	        mainPanel.add(clockLabel);
 
 	        // 좌측 버튼 1: "일정 추가하기"
 	        JButton addScheduleButton = new JButton("일정 추가하기");
-	        addScheduleButton.setIcon(new ImageIcon("src/images/addScheduleButton.png"));
+	        addScheduleButton.setIcon(new ImageIcon(getClass().getResource("/images/addScheduleButton.png")));
 	        addScheduleButton.setForeground(Color.WHITE);
 	        addScheduleButton.setBorderPainted(false);
 	        addScheduleButton.setBounds(50, 370, 190, 65);
@@ -440,7 +453,7 @@ public class SchedulerInterface {
 
 	        // 좌측 버튼 2: "일정 조회하기"
 	        JButton viewScheduleButton = new JButton("일정 조회하기");
-	        viewScheduleButton.setIcon(new ImageIcon("src/images/viewScheduleButton.png"));
+	        viewScheduleButton.setIcon(new ImageIcon(getClass().getResource("/images/viewScheduleButton.png")));
 	        viewScheduleButton.setForeground(Color.WHITE);
 	        viewScheduleButton.setBorderPainted(false);
 	        viewScheduleButton.setBounds(50, 480, 190, 65);
@@ -467,6 +480,31 @@ public class SchedulerInterface {
 	        
 	        rightPanel.add(scheduleSummaryPanel, BorderLayout.CENTER);
 	        mainPanel.add(rightPanel);
+
+	        // 우측 상단 ID 표시
+	        JLabel userIdLabel = new JLabel(user.getUserId() + "님");
+	        userIdLabel.setFont(new Font("Malgun Gothic", Font.PLAIN, 14));
+	        userIdLabel.setBounds(950, 30, 150, 30);
+	        mainPanel.add(userIdLabel);
+
+	        // 로그아웃 버튼
+	        JButton logoutButton = new JButton("로그아웃");
+	        logoutButton.setFont(new Font("Malgun Gothic", Font.PLAIN, 14));
+	        logoutButton.setBounds(1050, 30, 100, 30);
+	        styleButton(logoutButton, new Color(255, 99, 71));  // 토마토 레드 계열
+	        logoutButton.addActionListener(e -> {
+	            CompletableFuture<Boolean> future = user.logout();
+	            future.thenAccept(success -> {
+	                if (success) {
+	                    JOptionPane.showMessageDialog(frame, "로그아웃 되었습니다.", "알림", JOptionPane.INFORMATION_MESSAGE);
+	                    showScreen("Login");
+	                    frame.setSize(800, 600);  // 로그인 화면 크기로 조정
+	                } else {
+	                    JOptionPane.showMessageDialog(frame, "로그아웃에 실패했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+	                }
+	            });
+	        });
+	        mainPanel.add(logoutButton);
 
 	        return mainPanel;
 	    }
@@ -594,13 +632,194 @@ public class SchedulerInterface {
 	        cancelButton.addActionListener(e -> showScreen("Main"));
 
 	        return panel;
-	    }  
+	    }
+
+	public JPanel showSpecifyScheListScreen() {
+        // 메인 패널 설정
+        JPanel panel = new JPanel();
+        panel.setLayout(null);
+        panel.setPreferredSize(new Dimension(1200, 800));
+        panel.setBackground(Color.WHITE);
+
+        // 상단 제목
+        JLabel titleLabel = new JLabel("일정 조회하기");
+        titleLabel.setFont(new Font("Malgun Gothic", Font.BOLD, 36));
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        titleLabel.setBounds(400, 50, 400, 50);
+        panel.add(titleLabel);
+
+
+		// 날짜 선택 콤보박스
+        // TODO: getKeyArray() 호출하여 실제 일정 날짜 가져오기
+
+        // 날짜 선택 콤보박스
+        String[] scheduleDates = user.getKeyArray(true).join(); // 동기적으로 데이터 가져오기(로그인 시점에 초기화)
+    	JComboBox<String> dateComboBox = new JComboBox<>(scheduleDates.length > 0 ? scheduleDates : new String[]{"저장된 일정이 없습니다"});
+        dateComboBox.setBounds(350, 150, 200, 30);
+        dateComboBox.setFont(new Font("Malgun Gothic", Font.PLAIN, 14));
+        panel.add(dateComboBox);
+
+		// 조회 버튼
+        JButton viewButton = new JButton("조회");
+        viewButton.setBounds(570, 150, 100, 30);
+        viewButton.setFont(new Font("Malgun Gothic", Font.PLAIN, 14));
+        styleButton(viewButton, new Color(135, 206, 250));
+        panel.add(viewButton);
+
+		 // 삭제 버튼 
+		 JButton deleteButton = new JButton("삭제");
+		 deleteButton.setBounds(680, 150, 100, 30);
+		 deleteButton.setFont(new Font("Malgun Gothic", Font.PLAIN, 14));
+		 styleButton(deleteButton, new Color(0xCC93E9));  // 연보라색
+		 deleteButton.setEnabled(scheduleDates.length > 0);
+		 deleteButton.addActionListener(e -> {
+		     selectedDate = dateComboBox.getSelectedItem().toString();  // 선택된 날짜 저장
+		     showScreen("DeleteSchedule");
+		 });
+		 panel.add(deleteButton);
+
+        // 일정 표시 패널
+        JPanel schedulePanel = new JPanel();
+        schedulePanel.setLayout(new BoxLayout(schedulePanel, BoxLayout.Y_AXIS));
+        schedulePanel.setBackground(Color.WHITE);
+
+        // 스크롤 패널에 일정 패널 추가
+        JScrollPane scrollPane = new JScrollPane(schedulePanel);
+        scrollPane.setBounds(300, 200, 600, 400);
+        scrollPane.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+        panel.add(scrollPane);
+
+        // 조회 버튼 클릭 이벤트
+        viewButton.addActionListener(e -> {
+            schedulePanel.removeAll(); // 기존 일정 제거
+            String selectedDate = (String) dateComboBox.getSelectedItem();
+            
+            // scheduler.specifyScheList() 호출하여 실제 일정 데이터 가져오기
+            // String[] schedules = scheduler.specifyScheList(user, selectedDate);
+			// for (int i = 0; i <  schedules.length; i++) {
+            //     JLabel scheduleLabel = new JLabel((i + 1) + ". " +  schedules[i]);
+            //     scheduleLabel.setFont(new Font("Malgun Gothic", Font.PLAIN, 16));
+            //     scheduleLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+            //     schedulePanel.add(scheduleLabel);
+            // }
+            
+            // 테스트용 예시 데이터
+            String[] testSchedules = {
+                "오전 8시 - 아침 먹기",
+                "오후 1시 - 점심 먹기",
+                "오후 7시 - 저녁 먹기",
+                "오후 11시 - 잠 자기"
+            };
+
+            // 테스트 일정 표시
+            for (int i = 0; i < testSchedules.length; i++) {
+                JLabel scheduleLabel = new JLabel((i + 1) + ". " + testSchedules[i]);
+                scheduleLabel.setFont(new Font("Malgun Gothic", Font.PLAIN, 16));
+                scheduleLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+                schedulePanel.add(scheduleLabel);
+            }
+
+            schedulePanel.revalidate();
+            schedulePanel.repaint();
+        });
+
+        // 메인으로 돌아가기 버튼
+        JButton backButton = new JButton("메인으로 돌아가기");
+        backButton.setBounds(500, 650, 200, 40);
+        styleButton(backButton, new Color(255, 215, 0));
+		viewButton.setFont(new Font("Malgun Gothic", Font.PLAIN, 14));
+        backButton.addActionListener(e -> showScreen("Main"));
+        panel.add(backButton);
+
+        return panel;
+    }
+    public JPanel delScheScreen() {
+        JPanel panel = new JPanel();
+        panel.setLayout(null);
+        panel.setPreferredSize(new Dimension(1200, 800));
+        panel.setBackground(Color.WHITE);
+
+        // 상단 제목
+        JLabel titleLabel = new JLabel("일정 삭제하기");
+        titleLabel.setFont(new Font("Malgun Gothic", Font.BOLD, 36));
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        titleLabel.setBounds(400, 50, 400, 50);
+        panel.add(titleLabel);
+
+        // 선택된 날짜 표시 (YYYYMMDD -> YYYY년 MM월 DD일)
+        String formattedDate = selectedDate != null ? 
+            selectedDate.substring(0, 4) + "년 " + 
+            selectedDate.substring(4, 6) + "월 " + 
+            selectedDate.substring(6, 8) + "일" : 
+            "날짜가 선택되지 않음";
+
+        JLabel dateLabel = new JLabel("선택된 날짜: " + formattedDate);
+        dateLabel.setFont(new Font("Malgun Gothic", Font.PLAIN, 18));
+        dateLabel.setBounds(350, 120, 300, 30);
+        panel.add(dateLabel);
+
+        // 일정 선택 콤보박스(specifyScheList(user, selectedDate)호출로 주석 처리)
+        // String[] schedules = scheduler.specifyScheList(user, selectedDate);
+        // JComboBox<String> scheduleComboBox = new JComboBox<>(schedules);
+
+		// 일정 선택 콤보박스 (테스트용 예시)
+		String[] testSchedules = {
+			"오전 8시 - 아침 먹기",
+			"오후 1시 - 점심 먹기",
+			"오후 7시 - 저녁 먹기",
+			"오후 11시 - 잠 자기"
+		};
+		JComboBox<String> scheduleComboBox = new JComboBox<>(testSchedules);
+
+        scheduleComboBox.setBounds(350, 170, 400, 30);
+        scheduleComboBox.setFont(new Font("Malgun Gothic", Font.PLAIN, 14));
+        panel.add(scheduleComboBox);
+
+        // 삭제 버튼
+        JButton deleteButton = new JButton("삭제");
+        deleteButton.setBounds(770, 170, 100, 30);
+        deleteButton.setFont(new Font("Malgun Gothic", Font.PLAIN, 14));
+        styleButton(deleteButton, new Color(0xCC93E9));  // 연보라색
+        panel.add(deleteButton);
+
+        // 삭제 버튼 클릭 이벤트
+        deleteButton.addActionListener(e -> {
+            int selectedIndex = scheduleComboBox.getSelectedIndex();
+            int confirm = JOptionPane.showConfirmDialog(
+                panel,
+                "선택한 일정을 삭제하시겠습니까?",
+                "일정 삭제 확인",
+                JOptionPane.YES_NO_OPTION
+            );
+            
+            if (confirm == JOptionPane.YES_OPTION) {
+                // boolean success = scheduler.delSche(user, selectedDate, selectedIndex);
+                boolean success = true;  // 테스트용
+                if (success) {
+                    JOptionPane.showMessageDialog(panel, "일정이 성공적으로 삭제되었습니다.");
+                    showScreen("Main");
+                } else {
+                    JOptionPane.showMessageDialog(panel, "일정 삭제에 실패했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        // 메인으로 돌아가기 버튼
+        JButton backButton = new JButton("메인으로 돌아가기");
+        backButton.setBounds(500, 650, 200, 40);
+        styleButton(backButton, new Color(255, 215, 0));
+        backButton.setFont(new Font("Malgun Gothic", Font.PLAIN, 14));
+        backButton.addActionListener(e -> showScreen("Main"));
+        panel.add(backButton);
+
+        return panel;
+    }
 	   
  // 버튼 스타일 설정
     private void styleButton(JButton button, Color bgColor) {
     	button.setBackground(bgColor);
         button.setForeground(Color.WHITE);
-        button.setFont(new Font("Arial", Font.BOLD, 12));
+        //button.setFont(new Font("Arial", Font.BOLD, 12));
         button.setBorderPainted(false);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
@@ -620,8 +839,51 @@ public class SchedulerInterface {
     }
 
     // 화면 전환 메서드
-    public void showScreen(String name) {
-        cardLayout.show(mainPanel, name);
+	public void showScreen(String name) {
+        if ((name.equals("Main") || name.equals("AddSchedule") || 
+            name.equals("SpecifyScheList") || name.equals("DeleteSchedule"))    
+            && mainScreenPanel == null) {
+            JOptionPane.showMessageDialog(frame, "로그인이 필요합니다.", "알림", JOptionPane.WARNING_MESSAGE);
+            cardLayout.show(mainPanel, "Login");
+            return;
+        }
+		// 현재 표시된 패널 제거
+		Component[] components = mainPanel.getComponents();
+		for (Component comp : components) {
+			mainPanel.remove(comp);
+		}
+	
+		// 새 패널 생성
+		switch (name) {
+			case "Login":
+				mainPanel.add(loginScreen(), "Login");
+				break;
+			case "Register":
+				mainPanel.add(registerScreen(), "Register");
+				break;
+			case "FindPassword":
+				mainPanel.add(findPasswordScreen(), "FindPassword");
+				break;
+			case "Main":
+				mainScreenPanel = mainScreen();
+				mainPanel.add(mainScreen(), "Main");
+				break;
+			case "AddSchedule":
+				mainScreenPanel = mainScreen();
+				mainPanel.add(addScheScreen(), "AddSchedule");
+				break;
+			case "SpecifyScheList":
+				mainScreenPanel = mainScreen();
+				mainPanel.add(showSpecifyScheListScreen(), "SpecifyScheList");
+				break;
+			case "DeleteSchedule":
+				mainScreenPanel = mainScreen();
+				mainPanel.add(delScheScreen(), "DeleteSchedule");
+				break;
+		}
+		cardLayout.show(mainPanel, name);
+		mainPanel.revalidate();
+		mainPanel.repaint();
     }
 
     // main() 메서드
@@ -630,7 +892,7 @@ public class SchedulerInterface {
         Register register = new Register();
         Scheduler scheduler = new Scheduler();
 
-        // SchedulerInterface 초기화
         new SchedulerInterface(register, scheduler);
     }
+
 }
