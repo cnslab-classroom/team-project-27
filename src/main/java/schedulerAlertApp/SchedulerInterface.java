@@ -1,8 +1,6 @@
 package schedulerAlertApp;
 
 import javax.swing.*;
-import javax.swing.border.LineBorder;
-
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -15,11 +13,6 @@ public class SchedulerInterface {
     private JFrame frame;
     private JPanel mainPanel;
     private CardLayout cardLayout;
-
-	private JPanel mainScreenPanel;
-    private JPanel addScheScreenPanel;
-    private JPanel specifyScheListPanel;
-	private JPanel delScheScreenPanel;
 
     private Register user;
     private Scheduler scheduler;
@@ -53,7 +46,6 @@ public class SchedulerInterface {
         // 2초 뒤 자동 로그인 실행
         javax.swing.Timer timer = new javax.swing.Timer(2000, e -> {
             if (user.autoLogin()) {
-                initializePostLoginScreens(); // 로그인 후 화면들 초기화
                 showScreen("Main");
                 frame.setSize(1200, 800);
             } else {
@@ -64,30 +56,16 @@ public class SchedulerInterface {
         timer.start();
     }
 
-	 // 로그인 후 화면들을 초기화하는 메서드
-	 private void initializePostLoginScreens() {
-        mainScreenPanel = mainScreen();
-        addScheScreenPanel = addScheScreen();
-        specifyScheListPanel = showSpecifyScheListScreen();
-		delScheScreenPanel = delScheScreen();
-
-        mainPanel.add(mainScreenPanel, "Main");
-        mainPanel.add(addScheScreenPanel, "AddSchedule");
-        mainPanel.add(specifyScheListPanel, "SpecifyScheList");
-		mainPanel.add(delScheScreenPanel, "DeleteSchedule");
-    }
-
-    // 오토로그인 화면
+    // 자동로그인 화면
 	public JPanel autoLoginScreen() {
 	    JPanel panel = new JPanel();
 	    panel.setLayout(new BorderLayout());
 
-	    // 중앙: 로딩 메시지와 프로그레스 바
+	    // 프로그레스 바
 	    JPanel centerPanel = new JPanel();
 	    centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
 	    centerPanel.setAlignmentX(Component.CENTER_ALIGNMENT); // 패널 자체 정렬
 
-	    // 여백 조정을 위한 glue 사용
 	    centerPanel.add(Box.createVerticalGlue()); // 위쪽 공간
 
 	    JLabel statusLabel = new JLabel("자동로그인 진행 중...");
@@ -100,11 +78,11 @@ public class SchedulerInterface {
 	    centerPanel.add(progressBar);
 	    
 	    centerPanel.add(Box.createVerticalStrut(20)); // 라벨과 프로그레스바 간격
-	    centerPanel.add(Box.createVerticalGlue()); // 아래쪽 공간
+	    centerPanel.add(Box.createVerticalGlue()); 
 
 	    panel.add(centerPanel, BorderLayout.CENTER);
 
-	    // 하단: 버튼
+	    // 로그인화면으로 이동 버튼
 	    JButton goToLoginButton = new JButton("로그인 화면으로 이동");
 	    goToLoginButton.addActionListener(e -> showScreen("Login"));
 	    panel.add(goToLoginButton, BorderLayout.SOUTH);
@@ -114,114 +92,110 @@ public class SchedulerInterface {
 
     // 로그인 화면
 	 public JPanel loginScreen() {
-	        JPanel panel = new JPanel();
-	        panel.setLayout(new BorderLayout());
+		JPanel panel = new JPanel();
+		panel.setLayout(new BorderLayout());
 
-	        // 중앙: 전체 컴포넌트를 포함할 패널
-	        JPanel centerPanel = new JPanel();
-	        centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
+		JPanel centerPanel = new JPanel();
+		centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
 
-	        // 위쪽 유연한 공간 추가 (컴포넌트들을 정중앙에 배치)
-	        centerPanel.add(Box.createVerticalGlue());
+		centerPanel.add(Box.createVerticalGlue());
 
-	        // 프로그램 이름 라벨
-	        JLabel programNameLabel = new JLabel("Task Manager", JLabel.CENTER);
-	        programNameLabel.setFont(new Font("Arial", Font.BOLD, 24));
-	        programNameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-	        centerPanel.add(programNameLabel);
+		// 프로그램 이름 라벨
+		JLabel programNameLabel = new JLabel("Task Manager", JLabel.CENTER);
+		programNameLabel.setFont(new Font("Arial", Font.BOLD, 24));
+		programNameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+		centerPanel.add(programNameLabel);
 
-	        centerPanel.add(Box.createVerticalStrut(10)); // 프로그램 이름과 ID 라벨 간격
+		centerPanel.add(Box.createVerticalStrut(10)); // 프로그램 이름과 ID 라벨 간격
 
-	        // ID 라벨 및 입력 필드
-	        JLabel idLabel = new JLabel("ID:");
-	        idLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-	        centerPanel.add(idLabel);
+		// ID 라벨 및 입력 필드
+		JLabel idLabel = new JLabel("ID:");
+		idLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+		centerPanel.add(idLabel);
 
-	        JTextField idField = new JTextField(20);
-	        idField.setMaximumSize(new Dimension(300, 30));
-	        idField.setAlignmentX(Component.CENTER_ALIGNMENT);
-	        centerPanel.add(idField);
+		JTextField idField = new JTextField(20);
+		idField.setMaximumSize(new Dimension(300, 30));
+		idField.setAlignmentX(Component.CENTER_ALIGNMENT);
+		centerPanel.add(idField);
 
-	        centerPanel.add(Box.createVerticalStrut(10)); // ID와 Password 간격
+		centerPanel.add(Box.createVerticalStrut(10)); // ID와 Password 간격
 
-	        // Password 라벨 및 입력 필드
-	        JLabel passwordLabel = new JLabel("Password:");
-	        passwordLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-	        centerPanel.add(passwordLabel);
+		// Password 라벨 및 입력 필드
+		JLabel passwordLabel = new JLabel("Password:");
+		passwordLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+		centerPanel.add(passwordLabel);
 
-	        JPasswordField passwordField = new JPasswordField(20);
-	        passwordField.setMaximumSize(new Dimension(300, 30));
-	        passwordField.setAlignmentX(Component.CENTER_ALIGNMENT);
-	        centerPanel.add(passwordField);
+		JPasswordField passwordField = new JPasswordField(20);
+		passwordField.setMaximumSize(new Dimension(300, 30));
+		passwordField.setAlignmentX(Component.CENTER_ALIGNMENT);
+		centerPanel.add(passwordField);
 
-	        centerPanel.add(Box.createVerticalStrut(10)); // Password와 체크박스 간격
+		centerPanel.add(Box.createVerticalStrut(10)); // Password와 체크박스 간격
 
-	        // 자동 로그인 체크박스
-	        JCheckBox autoLoginCheckBox = new JCheckBox("자동 로그인");
-	        autoLoginCheckBox.setAlignmentX(Component.CENTER_ALIGNMENT);
-	        centerPanel.add(autoLoginCheckBox);
+		// 자동 로그인 체크박스
+		JCheckBox autoLoginCheckBox = new JCheckBox("자동 로그인");
+		autoLoginCheckBox.setAlignmentX(Component.CENTER_ALIGNMENT);
+		centerPanel.add(autoLoginCheckBox);
 
-	        centerPanel.add(Box.createVerticalStrut(10)); // 체크박스와 버튼 간격
+		centerPanel.add(Box.createVerticalStrut(10)); // 체크박스와 버튼 간격
 
-	        // 버튼 패널
-	        JPanel buttonPanel = new JPanel();
-	        buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+		// 버튼 패널
+		JPanel buttonPanel = new JPanel();
+		buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
 
-	        JButton loginButton = new JButton("로그인");
-	        loginButton.addActionListener(e -> {
-	            boolean autoLogin = autoLoginCheckBox.isSelected();
-	            String id = idField.getText();
-	            String password = new String(passwordField.getPassword());
-	
-	            int loginResult = user.login(id, password, autoLogin);
-	
-	            if (loginResult == 1) {
-					initializePostLoginScreens(); // 로그인 성공 시 화면들 초기화
-					showScreen("Main");
-					frame.setSize(1200, 800);
-	            } else if (loginResult == 2) {
-	                JOptionPane.showMessageDialog(panel, "ID가 존재하지 않습니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
-	            } else if (loginResult == 3) {
-	                JOptionPane.showMessageDialog(panel, "비밀번호가 틀렸습니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
-	            } else {
-	                JOptionPane.showMessageDialog(panel, "알 수 없는 오류가 발생했습니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
-	            }
-	        });
-	        buttonPanel.add(loginButton);
+		JButton loginButton = new JButton("로그인");
+		styleButton(loginButton, new Color(135, 206, 250));  // 하늘색
+		loginButton.addActionListener(e -> {
+			boolean autoLogin = autoLoginCheckBox.isSelected();
+			String id = idField.getText();
+			String password = new String(passwordField.getPassword());
 
-	        JButton registerButton = new JButton("회원가입");
-	        registerButton.addActionListener(e -> showScreen("Register"));
-	        buttonPanel.add(registerButton);
+			int loginResult = user.login(id, password, autoLogin);
 
-	        JButton findPasswordButton = new JButton("비밀번호 찾기");
-	        findPasswordButton.addActionListener(e -> showScreen("FindPassword"));
-	        buttonPanel.add(findPasswordButton);
+			if (loginResult == 1) {
+				showScreen("Main");
+				frame.setSize(1200, 800);
+			} else if (loginResult == 2) {
+				JOptionPane.showMessageDialog(panel, "ID가 존재하지 않습니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+			} else if (loginResult == 3) {
+				JOptionPane.showMessageDialog(panel, "비밀번호가 틀렸습니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+			} else {
+				JOptionPane.showMessageDialog(panel, "알 수 없는 오류가 발생했습니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+			}
+		});
+		buttonPanel.add(loginButton);
 
-	        centerPanel.add(buttonPanel);
+		JButton registerButton = new JButton("회원가입");
+		styleButton(registerButton, new Color(255, 215, 0));  // 노란색
+		registerButton.addActionListener(e -> showScreen("Register"));
+		buttonPanel.add(registerButton);
 
-	        // 아래쪽 유연한 공간 추가 (컴포넌트들을 정중앙에 배치)
-	        centerPanel.add(Box.createVerticalGlue());
+		JButton findPasswordButton = new JButton("비밀번호 찾기");
+		styleButton(findPasswordButton, new Color(144, 238, 144));  // 연두색
+		findPasswordButton.addActionListener(e -> showScreen("FindPassword"));
+		buttonPanel.add(findPasswordButton);
 
-	        panel.add(centerPanel, BorderLayout.CENTER);
+		centerPanel.add(buttonPanel);
+		centerPanel.add(Box.createVerticalGlue());
 
-	        return panel;
-	    }
-	 
+		panel.add(centerPanel, BorderLayout.CENTER);
+
+		return panel;
+	}
+	// 회원가입 화면
 	   public JPanel registerScreen() {
 	        JPanel panel = new JPanel();
 	        panel.setLayout(null); 
 
-	        // Register 제목 라벨
 	        JLabel titleLabel = new JLabel("Register");
 	        titleLabel.setFont(new Font("Arial", Font.BOLD, 30));
 	        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
 	        titleLabel.setBounds(200, 50, 400, 40); 
 	        panel.add(titleLabel);
 
-	        // idLabel 기준 Y좌표 설정
+
 	        int baseY = 150;
 
-	        // ID Label & Field
 	        JLabel idLabel = new JLabel("ID:");
 	        idLabel.setBounds(150, baseY, 100, 30);
 	        JTextField idField = new JTextField();
@@ -230,13 +204,11 @@ public class SchedulerInterface {
 	        verifyIDButton.setBounds(460, baseY, 120, 30);
 	        styleButton(verifyIDButton, new Color(135, 206, 250)); // 하늘색
 
-	        // Password Label & Field
 	        JLabel passwordLabel = new JLabel("Password:");
 	        passwordLabel.setBounds(150, baseY + 50, 100, 30);
 	        JTextField passwordField = new JTextField();
 	        passwordField.setBounds(250, baseY + 50, 330, 30);
 
-	        // Security Question Label & ComboBox
 	        JLabel questionLabel = new JLabel("Security Question:");
 	        questionLabel.setBounds(150, baseY + 100, 150, 30);
 	        JComboBox<String> questionComboBox = new JComboBox<>(new String[]{
@@ -246,13 +218,12 @@ public class SchedulerInterface {
 	        });
 	        questionComboBox.setBounds(310, baseY + 100, 270, 30);
 
-	        // Answer Label & Field
 	        JLabel answerLabel = new JLabel("Answer:");
 	        answerLabel.setBounds(150, baseY + 150, 100, 30);
 	        JTextField answerField = new JTextField();
 	        answerField.setBounds(250, baseY + 150, 330, 30);
 
-	        // Buttons
+
 	        JButton registerButton = new JButton("Register");
 	        registerButton.setBounds(250, baseY + 220, 120, 40);
 	        styleButton(registerButton, new Color(135, 206, 250)); // 하늘색
@@ -279,7 +250,6 @@ public class SchedulerInterface {
 	        limitTextFieldLength(passwordField, 16);
 	        limitTextFieldLength(answerField, 50);
 
-	       
 	        verifyIDButton.addActionListener(e -> {
 	            String enteredId = idField.getText().trim();
 	            if (enteredId.isEmpty()) {
@@ -331,82 +301,87 @@ public class SchedulerInterface {
 	        return panel;
 	    }
 
-    
+    //비밀번호 찾기 화면
     public JPanel findPasswordScreen() {
         JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setLayout(null); // absolute layout으로 변경
 
-        // 위쪽 유연한 공간 추가 (전체 컴포넌트를 중앙 배치)
-        panel.add(Box.createVerticalGlue());
+        // 제목 라벨
+        JLabel titleLabel = new JLabel("Find Password");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 30));
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        titleLabel.setBounds(200, 50, 400, 40);
+        panel.add(titleLabel);
 
-        // ID 입력 필드
+        // 기준 Y좌표 설정
+        int baseY = 150;
+
+        // ID 입력
         JLabel idLabel = new JLabel("ID:");
-        idLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        panel.add(idLabel);
+        idLabel.setBounds(150, baseY, 100, 30);
+        JTextField idField = new JTextField();
+        idField.setBounds(250, baseY, 330, 30);
 
-        JTextField idField = new JTextField(20);
-        idField.setMaximumSize(new Dimension(300, 30));
-        idField.setAlignmentX(Component.CENTER_ALIGNMENT);
-        panel.add(idField);
-
-        panel.add(Box.createVerticalStrut(10)); // 컴포넌트 간 간격
-
-        // Question Index 선택
-        JLabel questionLabel = new JLabel("본인 확인 질문:");
-        questionLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        panel.add(questionLabel);
-
+        // 보안 질문
+        JLabel questionLabel = new JLabel("Security Question:");
+        questionLabel.setBounds(150, baseY + 50, 150, 30);
         JComboBox<String> questionComboBox = new JComboBox<>(new String[] {
             "질문 1: 당신의 출생지는?",
             "질문 2: 당신의 첫 번째 반려동물 이름은?",
             "질문 3: 당신이 다닌 첫 번째 학교는?"
         });
-        questionComboBox.setMaximumSize(new Dimension(300, 30));
-        questionComboBox.setAlignmentX(Component.CENTER_ALIGNMENT);
-        panel.add(questionComboBox);
+        questionComboBox.setBounds(310, baseY + 50, 270, 30);
 
-        panel.add(Box.createVerticalStrut(10)); // 컴포넌트 간 간격
+        // 답변
+        JLabel answerLabel = new JLabel("Answer:");
+        answerLabel.setBounds(150, baseY + 100, 100, 30);
+        JTextField answerField = new JTextField();
+        answerField.setBounds(250, baseY + 100, 330, 30);
 
-        // Answer 입력 필드
-        JLabel answerLabel = new JLabel("답변:");
-        answerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        panel.add(answerLabel);
+        // 새 비밀번호
+        JLabel newPasswordLabel = new JLabel("New Password:");
+        newPasswordLabel.setBounds(150, baseY + 150, 100, 30);
+        JPasswordField newPasswordField = new JPasswordField();
+        newPasswordField.setBounds(250, baseY + 150, 330, 30);
 
-        JTextField answerField = new JTextField(20);
-        answerField.setMaximumSize(new Dimension(300, 30));
-        answerField.setAlignmentX(Component.CENTER_ALIGNMENT);
-        panel.add(answerField);
-
-        panel.add(Box.createVerticalStrut(10)); // 컴포넌트 간 간격
-
-        // New Password 입력 필드
-        JLabel newPasswordLabel = new JLabel("새 비밀번호:");
-        newPasswordLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        panel.add(newPasswordLabel);
-
-        JPasswordField newPasswordField = new JPasswordField(20);
-        newPasswordField.setMaximumSize(new Dimension(300, 30));
-        newPasswordField.setAlignmentX(Component.CENTER_ALIGNMENT);
-        panel.add(newPasswordField);
-
-        panel.add(Box.createVerticalStrut(10)); // 컴포넌트 간 간격
-
-        // PW 재설정 버튼
+        // 버튼
         JButton resetButton = new JButton("비밀번호 재설정");
-        resetButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        resetButton.setBounds(250, baseY + 220, 150, 40);
+        styleButton(resetButton, new Color(135, 206, 250)); // 하늘색
+
+        JButton cancelButton = new JButton("로그인 화면으로");
+        cancelButton.setBounds(430, baseY + 220, 150, 40);
+        styleButton(cancelButton, new Color(255, 215, 0)); // 노란색
+
+        // 컴포넌트 추가
+        panel.add(idLabel);
+        panel.add(idField);
+        panel.add(questionLabel);
+        panel.add(questionComboBox);
+        panel.add(answerLabel);
+        panel.add(answerField);
+        panel.add(newPasswordLabel);
+        panel.add(newPasswordField);
+        panel.add(resetButton);
+        panel.add(cancelButton);
+
+        // 글자 수 제한
+        limitTextFieldLength(idField, 12);
+        limitTextFieldLength(answerField, 50);
+        limitTextFieldLength(newPasswordField, 16);
+
+        // 비밀번호 재설정 버튼 이벤트
         resetButton.addActionListener(e -> {
             String id = idField.getText();
-            int questionIndex = questionComboBox.getSelectedIndex(); // 선택된 질문의 인덱스
+            int questionIndex = questionComboBox.getSelectedIndex();
             String questionAns = answerField.getText();
             String newPassword = new String(newPasswordField.getPassword());
 
-            // Register 클래스의 findPassword 메서드 호출
             int result = user.findPassword(id, questionIndex, questionAns, newPassword);
 
-            // 결과 처리
             if (result == 1) {
                 JOptionPane.showMessageDialog(panel, "비밀번호 재설정 성공!", "성공", JOptionPane.INFORMATION_MESSAGE);
-                showScreen("Login"); // 로그인 화면으로 전환
+                showScreen("Login");
             } else if (result == 2) {
                 JOptionPane.showMessageDialog(panel, "ID가 존재하지 않습니다.", "오류", JOptionPane.ERROR_MESSAGE);
             } else if (result == 3) {
@@ -415,32 +390,32 @@ public class SchedulerInterface {
                 JOptionPane.showMessageDialog(panel, "알 수 없는 오류가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
             }
         });
-        panel.add(resetButton);
 
-        // 아래쪽 유연한 공간 추가 
-        panel.add(Box.createVerticalGlue());
+        // 취소 버튼 이벤트
+        cancelButton.addActionListener(e -> showScreen("Login"));
+
         return panel;
     }
     
+	// 메인 화면
 	public JPanel mainScreen() {
-	        // 메인 패널 설정
-	        JPanel mainPanel = new JPanel();
-	        mainPanel.setLayout(null);
-	        mainPanel.setPreferredSize(new Dimension(1200, 800));
-	        mainPanel.setBackground(Color.WHITE);
+	        JPanel mainScreenPanel = new JPanel();
+	        mainScreenPanel.setLayout(null);
+	        mainScreenPanel.setPreferredSize(new Dimension(1200, 800));
+	        mainScreenPanel.setBackground(Color.WHITE);
 
 	        // 상단 제목
 	        JLabel titleLabel = new JLabel("Task Manager");
 	        titleLabel.setFont(new Font("Arial", Font.BOLD, 36));
 	        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
 	        titleLabel.setBounds(400, 20, 400, 50);
-	        mainPanel.add(titleLabel);
+	        mainScreenPanel.add(titleLabel);
 
 	        // 좌측 시계 이미지
 	        JLabel clockLabel = new JLabel();
 			clockLabel.setIcon(new ImageIcon(getClass().getResource("/images/clock.png")));
 	        clockLabel.setBounds(70, 180, 150, 150);
-	        mainPanel.add(clockLabel);
+	        mainScreenPanel.add(clockLabel);
 
 	        // 좌측 버튼 1: "일정 추가하기"
 	        JButton addScheduleButton = new JButton("일정 추가하기");
@@ -449,7 +424,7 @@ public class SchedulerInterface {
 	        addScheduleButton.setBorderPainted(false);
 	        addScheduleButton.setBounds(50, 370, 190, 65);
 	        addScheduleButton.addActionListener(e -> showScreen("AddSchedule")); // 화면 전환
-	        mainPanel.add(addScheduleButton);
+	        mainScreenPanel.add(addScheduleButton);
 
 	        // 좌측 버튼 2: "일정 조회하기"
 	        JButton viewScheduleButton = new JButton("일정 조회하기");
@@ -458,7 +433,7 @@ public class SchedulerInterface {
 	        viewScheduleButton.setBorderPainted(false);
 	        viewScheduleButton.setBounds(50, 480, 190, 65);
 	        viewScheduleButton.addActionListener(e -> showScreen("SpecifyScheList")); // 화면 전환
-	        mainPanel.add(viewScheduleButton);
+	        mainScreenPanel.add(viewScheduleButton);
 
 	        // 우측 패널
 	        JPanel rightPanel = new JPanel();
@@ -479,13 +454,13 @@ public class SchedulerInterface {
 	        JPanel scheduleSummaryPanel = showAllScheScreen(testScheSummary);
 	        
 	        rightPanel.add(scheduleSummaryPanel, BorderLayout.CENTER);
-	        mainPanel.add(rightPanel);
+	        mainScreenPanel.add(rightPanel);
 
 	        // 우측 상단 ID 표시
 	        JLabel userIdLabel = new JLabel(user.getUserId() + "님");
 	        userIdLabel.setFont(new Font("Malgun Gothic", Font.PLAIN, 14));
 	        userIdLabel.setBounds(950, 30, 150, 30);
-	        mainPanel.add(userIdLabel);
+	        mainScreenPanel.add(userIdLabel);
 
 	        // 로그아웃 버튼
 	        JButton logoutButton = new JButton("로그아웃");
@@ -504,58 +479,59 @@ public class SchedulerInterface {
 	                }
 	            });
 	        });
-	        mainPanel.add(logoutButton);
+	        mainScreenPanel.add(logoutButton);
 
-	        return mainPanel;
+	        return mainScreenPanel;
 	    }
     
-	   
+	   // 일정 요약 화면
 	   public JPanel showAllScheScreen(TreeMap<Integer, Integer> scheSummary) {
-	        // 패널 생성
 	        JPanel summaryPanel = new JPanel();
-	        summaryPanel.setLayout(new BoxLayout(summaryPanel, BoxLayout.Y_AXIS)); // 세로 정렬
-	        summaryPanel.setBackground(Color.WHITE); 
-	        summaryPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // 패널 여백
-	        
+	        summaryPanel.setLayout(new BoxLayout(summaryPanel, BoxLayout.Y_AXIS));
+	        summaryPanel.setBackground(Color.WHITE);
+	        // 패널 전체에 여백 추가
+	        summaryPanel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
 
-	        // 요약 데이터 표시
-	        for (Map.Entry<Integer, Integer> entry : scheSummary.entrySet()) {
-	            int remainingDays = entry.getKey();
-	            int taskCount = entry.getValue();
-	            String taskSummary = taskCount + "개의 일정이 " + remainingDays + "일 남았습니다.";
+	        // 제목 추가
+	        JLabel titleLabel = new JLabel("한 눈에 보는 일정");
+	        titleLabel.setFont(new Font("Malgun Gothic", Font.BOLD, 24));
+	        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+	        summaryPanel.add(titleLabel);
+	        summaryPanel.add(Box.createVerticalStrut(20));  // 제목과 내용 사이 간격
 
-	            // 각 요약 데이터를 JLabel로 추가
-	            JLabel taskLabel = new JLabel(taskSummary);
-	            taskLabel.setFont(new Font("Malgun Gothic", Font.PLAIN, 20)); // 폰트 설정
-	            summaryPanel.add(taskLabel);
+	        // 일정 요약 
+	        if (scheSummary.isEmpty()) {
+	            JLabel emptyLabel = new JLabel("등록된 일정이 없습니다.");
+	            emptyLabel.setFont(new Font("Malgun Gothic", Font.PLAIN, 18));
+	            emptyLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+	            summaryPanel.add(emptyLabel);
+	        } else {
+				for (Map.Entry<Integer, Integer> entry : scheSummary.entrySet()) {
+					String taskSummary = entry.getValue() + "개의 일정이 " + entry.getKey() + "일 남았습니다.";
+					JLabel taskLabel = new JLabel(taskSummary);
+					taskLabel.setFont(new Font("Malgun Gothic", Font.PLAIN, 18));
+					taskLabel.setAlignmentX(Component.CENTER_ALIGNMENT);  
+					summaryPanel.add(taskLabel);
+					summaryPanel.add(Box.createVerticalStrut(5));  
+				}
 	        }
 
-	        // 스크롤 가능하도록 JScrollPane에 추가
-	        JScrollPane scrollPane = new JScrollPane(summaryPanel);
-	        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-	        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-	        scrollPane.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1)); // 테두리 설정
-
-	        // 최종 패널 반환
-	        JPanel containerPanel = new JPanel(new BorderLayout());
-	        containerPanel.setBackground(Color.WHITE);
-	        containerPanel.add(scrollPane, BorderLayout.CENTER);
-
-	        return containerPanel;
+	        return summaryPanel;
 	    }
 	   
+		// 일정 추가 화면
 	   public JPanel addScheScreen() {
 	        // 메인 패널 설정
 	        JPanel panel = new JPanel();
-	        panel.setLayout(null); // 절대 배치
-	        panel.setPreferredSize(new Dimension(1200, 800)); // 크기 1200x800
+	        panel.setLayout(null); // absolute layout
+	        panel.setPreferredSize(new Dimension(1200, 800)); 
 	        panel.setBackground(Color.WHITE);
 
 	        // 상단 제목
 	        JLabel titleLabel = new JLabel("일정 추가");
 	        titleLabel.setFont(new Font("Malgun Gothic", Font.BOLD, 36));
 	        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
-	        titleLabel.setBounds(400, 50, 400, 50); // 상단 중앙
+	        titleLabel.setBounds(400, 50, 400, 50); 
 	        panel.add(titleLabel);
 
 	        // 날짜 입력 필드
@@ -586,7 +562,7 @@ public class SchedulerInterface {
 	        // 저장 버튼
 	        JButton saveButton = new JButton("Save");
 	        saveButton.setBounds(450, 600, 150, 50);
-	        styleButton(saveButton, new Color(173, 216, 230)); // 연한 파란색
+	        styleButton(saveButton, new Color(173, 216, 230)); // 하늘색
 	        panel.add(saveButton);
 
 	        // 취소 버튼
@@ -634,6 +610,7 @@ public class SchedulerInterface {
 	        return panel;
 	    }
 
+		// 일정 조회 화면
 	public JPanel showSpecifyScheListScreen() {
         // 메인 패널 설정
         JPanel panel = new JPanel();
@@ -733,6 +710,8 @@ public class SchedulerInterface {
 
         return panel;
     }
+
+	// 일정 삭제 화면
     public JPanel delScheScreen() {
         JPanel panel = new JPanel();
         panel.setLayout(null);
@@ -819,7 +798,6 @@ public class SchedulerInterface {
     private void styleButton(JButton button, Color bgColor) {
     	button.setBackground(bgColor);
         button.setForeground(Color.WHITE);
-        //button.setFont(new Font("Arial", Font.BOLD, 12));
         button.setBorderPainted(false);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
@@ -840,13 +818,6 @@ public class SchedulerInterface {
 
     // 화면 전환 메서드
 	public void showScreen(String name) {
-        if ((name.equals("Main") || name.equals("AddSchedule") || 
-            name.equals("SpecifyScheList") || name.equals("DeleteSchedule"))    
-            && mainScreenPanel == null) {
-            JOptionPane.showMessageDialog(frame, "로그인이 필요합니다.", "알림", JOptionPane.WARNING_MESSAGE);
-            cardLayout.show(mainPanel, "Login");
-            return;
-        }
 		// 현재 표시된 패널 제거
 		Component[] components = mainPanel.getComponents();
 		for (Component comp : components) {
@@ -865,19 +836,15 @@ public class SchedulerInterface {
 				mainPanel.add(findPasswordScreen(), "FindPassword");
 				break;
 			case "Main":
-				mainScreenPanel = mainScreen();
 				mainPanel.add(mainScreen(), "Main");
 				break;
 			case "AddSchedule":
-				mainScreenPanel = mainScreen();
 				mainPanel.add(addScheScreen(), "AddSchedule");
 				break;
 			case "SpecifyScheList":
-				mainScreenPanel = mainScreen();
 				mainPanel.add(showSpecifyScheListScreen(), "SpecifyScheList");
 				break;
 			case "DeleteSchedule":
-				mainScreenPanel = mainScreen();
 				mainPanel.add(delScheScreen(), "DeleteSchedule");
 				break;
 		}
