@@ -92,21 +92,29 @@ public class SchedulerInterface {
 
     // 로그인 화면
 	 public JPanel loginScreen() {
-		JPanel panel = new JPanel();
+		JPanel panel = new JPanel() {
+			@Override
+			protected void paintComponent(Graphics g) {
+				super.paintComponent(g);
+				ImageIcon background = new ImageIcon(getClass().getResource("/images/loginScreen.png"));
+				g.drawImage(background.getImage(), 0, 0, getWidth(), getHeight(), this);
+			}
+		};
 		panel.setLayout(new BorderLayout());
 
 		JPanel centerPanel = new JPanel();
 		centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
-
+		centerPanel.setOpaque(false);  
 		centerPanel.add(Box.createVerticalGlue());
 
 		// 프로그램 이름 라벨
+		centerPanel.add(Box.createVerticalStrut(50));
 		JLabel programNameLabel = new JLabel("Task Manager", JLabel.CENTER);
-		programNameLabel.setFont(new Font("Arial", Font.BOLD, 24));
+		programNameLabel.setFont(new Font("Arial", Font.BOLD, 28));
 		programNameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 		centerPanel.add(programNameLabel);
 
-		centerPanel.add(Box.createVerticalStrut(10)); // 프로그램 이름과 ID 라벨 간격
+		centerPanel.add(Box.createVerticalStrut(20)); // 프로그램 이름과 ID 라벨 간격
 
 		// ID 라벨 및 입력 필드
 		JLabel idLabel = new JLabel("ID:");
@@ -118,7 +126,7 @@ public class SchedulerInterface {
 		idField.setAlignmentX(Component.CENTER_ALIGNMENT);
 		centerPanel.add(idField);
 
-		centerPanel.add(Box.createVerticalStrut(10)); // ID와 Password 간격
+		centerPanel.add(Box.createVerticalStrut(15)); // ID와 Password 간격
 
 		// Password 라벨 및 입력 필드
 		JLabel passwordLabel = new JLabel("Password:");
@@ -130,18 +138,19 @@ public class SchedulerInterface {
 		passwordField.setAlignmentX(Component.CENTER_ALIGNMENT);
 		centerPanel.add(passwordField);
 
-		centerPanel.add(Box.createVerticalStrut(10)); // Password와 체크박스 간격
+		centerPanel.add(Box.createVerticalStrut(15)); // Password와 체크박스 간격
 
 		// 자동 로그인 체크박스
 		JCheckBox autoLoginCheckBox = new JCheckBox("자동 로그인");
 		autoLoginCheckBox.setAlignmentX(Component.CENTER_ALIGNMENT);
 		centerPanel.add(autoLoginCheckBox);
 
-		centerPanel.add(Box.createVerticalStrut(10)); // 체크박스와 버튼 간격
+		centerPanel.add(Box.createVerticalStrut(15)); // 체크박스와 버튼 간격
 
 		// 버튼 패널
 		JPanel buttonPanel = new JPanel();
 		buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+		buttonPanel.setOpaque(false); 
 
 		JButton loginButton = new JButton("로그인");
 		styleButton(loginButton, new Color(135, 206, 250));  // 하늘색
@@ -159,19 +168,37 @@ public class SchedulerInterface {
 				JOptionPane.showMessageDialog(panel, "ID가 존재하지 않습니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
 			} else if (loginResult == 3) {
 				JOptionPane.showMessageDialog(panel, "비밀번호가 틀렸습니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+			} else if (loginResult == 4) {
+				// 로그인은 성공했지만 자동 로그인 설정은 실패한 경우
+				int option = JOptionPane.showConfirmDialog(
+					panel,
+					"로그인은 성공했지만 자동 로그인 설정에 실패했습니다.\n계속 진행하시겠습니까?",
+					"자동 로그인 설정 실패",
+					JOptionPane.YES_NO_OPTION,
+					JOptionPane.WARNING_MESSAGE
+				);
+				
+				if (option == JOptionPane.YES_OPTION) {
+					showScreen("Main");
+					frame.setSize(1200, 800);
+				} else {
+					// 사용자가 취소를 선택한 경우
+					user.logout();  // 로그인 상태 해제
+				}
 			} else {
 				JOptionPane.showMessageDialog(panel, "알 수 없는 오류가 발생했습니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
 			}
 		});
+		
 		buttonPanel.add(loginButton);
 
 		JButton registerButton = new JButton("회원가입");
-		styleButton(registerButton, new Color(255, 215, 0));  // 노란색
+		styleButton(registerButton, new Color(153, 153, 255));  // 남색
 		registerButton.addActionListener(e -> showScreen("Register"));
 		buttonPanel.add(registerButton);
 
 		JButton findPasswordButton = new JButton("비밀번호 찾기");
-		styleButton(findPasswordButton, new Color(144, 238, 144));  // 연두색
+		styleButton(findPasswordButton, new Color(204, 153, 255));  // 보라색
 		findPasswordButton.addActionListener(e -> showScreen("FindPassword"));
 		buttonPanel.add(findPasswordButton);
 
@@ -185,6 +212,7 @@ public class SchedulerInterface {
 	// 회원가입 화면
 	   public JPanel registerScreen() {
 	        JPanel panel = new JPanel();
+			panel.setBackground(Color.WHITE);
 	        panel.setLayout(null); 
 
 	        JLabel titleLabel = new JLabel("Register");
@@ -202,7 +230,7 @@ public class SchedulerInterface {
 	        idField.setBounds(250, baseY, 200, 30);
 	        JButton verifyIDButton = new JButton("Verify ID");
 	        verifyIDButton.setBounds(460, baseY, 120, 30);
-	        styleButton(verifyIDButton, new Color(135, 206, 250)); // 하늘색
+	        styleButton(verifyIDButton, new Color(153, 224, 173)); // 연두색
 
 	        JLabel passwordLabel = new JLabel("Password:");
 	        passwordLabel.setBounds(150, baseY + 50, 100, 30);
@@ -230,7 +258,7 @@ public class SchedulerInterface {
 
 	        JButton cancelButton = new JButton("Cancel");
 	        cancelButton.setBounds(400, baseY + 220, 120, 40);
-	        styleButton(cancelButton, new Color(255, 215, 0)); // 노란색
+	        styleButton(cancelButton, new Color(204, 153, 255)); // 보라색
 
 	        // 패널에 추가
 	        panel.add(idLabel);
@@ -256,6 +284,14 @@ public class SchedulerInterface {
 	                JOptionPane.showMessageDialog(panel, "ID를 입력하세요.", "Error", JOptionPane.ERROR_MESSAGE);
 	                return;
 	            }
+	            
+	            // ID 길이 검증
+	            String idError = validateId(enteredId);
+	            if (idError != null) {
+	                JOptionPane.showMessageDialog(panel, idError, "ID 오류", JOptionPane.ERROR_MESSAGE);
+	                return;
+	            }
+
 	            CompletableFuture<String[]> future = user.getKeyArray(false);
 	            future.thenAccept(existingIds -> {
 	                java.util.List<String> idList = Arrays.asList(existingIds);
@@ -281,10 +317,25 @@ public class SchedulerInterface {
 	                return;
 	            }
 
+	            // ID 길이 검증
+	            String idError = validateId(enteredId);
+	            if (idError != null) {
+	                JOptionPane.showMessageDialog(panel, idError, "ID 오류", JOptionPane.ERROR_MESSAGE);
+	                return;
+	            }
+
+	            // 비밀번호 검증
+	            String passwordError = validatePassword(enteredPassword);
+	            if (passwordError != null) {
+	                JOptionPane.showMessageDialog(panel, passwordError, "비밀번호 오류", JOptionPane.ERROR_MESSAGE);
+	                return;
+	            }
+
 	            user.register(enteredId, enteredPassword, questionIndex, enteredAnswer)
 	                .thenAccept(success -> {
 	                    if (success) {
 	                        JOptionPane.showMessageDialog(panel, "회원가입이 완료되었습니다.", "Success", JOptionPane.INFORMATION_MESSAGE);
+	                        showScreen("Login");
 	                    } else {
 	                        JOptionPane.showMessageDialog(panel, "회원가입에 실패했습니다.", "Error", JOptionPane.ERROR_MESSAGE);
 	                    }
@@ -304,6 +355,7 @@ public class SchedulerInterface {
     //비밀번호 찾기 화면
     public JPanel findPasswordScreen() {
         JPanel panel = new JPanel();
+		panel.setBackground(Color.WHITE);
         panel.setLayout(null); // absolute layout으로 변경
 
         // 제목 라벨
@@ -351,7 +403,7 @@ public class SchedulerInterface {
 
         JButton cancelButton = new JButton("로그인 화면으로");
         cancelButton.setBounds(430, baseY + 220, 150, 40);
-        styleButton(cancelButton, new Color(255, 215, 0)); // 노란색
+        styleButton(cancelButton, new Color(204, 153, 255)); // 보라색
 
         // 컴포넌트 추가
         panel.add(idLabel);
@@ -376,6 +428,13 @@ public class SchedulerInterface {
             int questionIndex = questionComboBox.getSelectedIndex();
             String questionAns = answerField.getText();
             String newPassword = new String(newPasswordField.getPassword());
+
+            // 비밀번호 검증
+            String passwordError = validatePassword(newPassword);
+            if (passwordError != null) {
+                JOptionPane.showMessageDialog(panel, passwordError, "비밀번호 오류", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
 
             int result = user.findPassword(id, questionIndex, questionAns, newPassword);
 
@@ -568,7 +627,7 @@ public class SchedulerInterface {
 	        // 취소 버튼
 	        JButton cancelButton = new JButton("Cancel");
 	        cancelButton.setBounds(650, 600, 150, 50);
-	        styleButton(cancelButton, new Color(255, 215, 0)); // 노란색
+	        styleButton(cancelButton, new Color(204, 153, 255)); // 보라색
 	        panel.add(cancelButton);
 
 	        // 저장 버튼 클릭 이벤트
@@ -703,7 +762,7 @@ public class SchedulerInterface {
         // 메인으로 돌아가기 버튼
         JButton backButton = new JButton("메인으로 돌아가기");
         backButton.setBounds(500, 650, 200, 40);
-        styleButton(backButton, new Color(255, 215, 0));
+        styleButton(backButton, new Color(153, 153, 255));
 		viewButton.setFont(new Font("Malgun Gothic", Font.PLAIN, 14));
         backButton.addActionListener(e -> showScreen("Main"));
         panel.add(backButton);
@@ -814,6 +873,38 @@ public class SchedulerInterface {
                 super.insertString(offset, str, attr);
             }
         });
+    }
+
+	// 비밀번호 검증 메서드
+    private String validatePassword(String password) {
+        if (password.length() < 6) {
+            return "비밀번호는 6자리 이상이어야 합니다.";
+        }
+        
+        // 사용할 수 없는 특수문자 검사
+        String invalidChars = "(){}[]\\/'\";" ;
+        for (char c : password.toCharArray()) {
+            if (invalidChars.indexOf(c) != -1) {
+                return "비밀번호에 (){}[]\\/'\"; 문자는 사용할 수 없습니다.";
+            }
+        }
+        
+        return null; // 유효한 비밀번호
+    }
+
+    // ID 검증 메서드
+    private String validateId(String id) {
+        if (id.length() < 6) {
+            return "ID는 6자리 이상이어야 합니다.";
+        }
+		String invalidChars = "(){}[]\\/'\";" ;
+		for (char c : id.toCharArray()) {
+            if (invalidChars.indexOf(c) != -1) {
+                return "비밀번호에 (){}[]\\/'\"; 문자는 사용할 수 없습니다.";
+            }
+        }
+
+        return null; // 유효한 ID
     }
 
     // 화면 전환 메서드
