@@ -181,7 +181,7 @@ public class Register {
 
     protected CompletableFuture<Boolean> logout(){  //debugging complete
         CompletableFuture<Boolean> future = new CompletableFuture<>();
-        CompletableFuture<Boolean> future1 = setData("/autoLoginStr", "NULL");
+        CompletableFuture<Boolean> future1 = setData("/autoLoginStr", BCrypt.hashpw("NULL", BCrypt.gensalt(GENSALTNUM)));
         CompletableFuture<Boolean> future2 = setData("/autoLoginKey", "NULL");
         future1.thenApply(result -> {
             return true;
