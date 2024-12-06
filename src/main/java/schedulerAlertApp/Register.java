@@ -575,6 +575,8 @@ public class Register {
             });
             try {
                 testArray=getFuture.get(); // wait for the asynchronous task to complete
+                if(testArray.size()==1)
+                    index = -1;
             } catch (Exception e) {
                 e.printStackTrace();
                 future.complete(false);
