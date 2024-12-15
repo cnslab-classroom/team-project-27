@@ -4,6 +4,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.TreeMap;
@@ -32,11 +34,8 @@ public class SchedulerInterface {
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
 
-        // 화면 추가
+        // // 화면 추가
         mainPanel.add(autoLoginScreen(), "AutoLogin");
-        mainPanel.add(loginScreen(), "Login");
-        mainPanel.add(registerScreen(), "Register");
-        mainPanel.add(findPasswordScreen(), "FindPassword");
         // 메인 패널을 프레임에 추가
         frame.add(mainPanel);
 		frame.setVisible(true);
@@ -727,13 +726,15 @@ public class SchedulerInterface {
             schedulePanel.removeAll(); // 기존 일정 제거
             String selectedDate = (String) dateComboBox.getSelectedItem(); 
             String[] schedules = scheduler.specifyScheList(user, selectedDate);
+			List<String> sortedSchedules = sortSchedules(schedules); // 정렬된 일정 리스트
 			// 일정 표시
-			for (int i = 0; i <  schedules.length; i++) {
-                JLabel scheduleLabel = new JLabel((i + 1) + ". " +  schedules[i]);
-                scheduleLabel.setFont(new Font("Malgun Gothic", Font.PLAIN, 16));
-                scheduleLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-                schedulePanel.add(scheduleLabel);
-            }
+			int index = 1;
+			for (String schedule : sortedSchedules) {
+				JLabel scheduleLabel = new JLabel((index++) + ". " + schedule);
+				scheduleLabel.setFont(new Font("Malgun Gothic", Font.PLAIN, 16));
+				scheduleLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+				schedulePanel.add(scheduleLabel);
+			}
             schedulePanel.revalidate(); // 레이아웃 재검사
             schedulePanel.repaint(); // 화면 갱신
         });
@@ -782,8 +783,9 @@ public class SchedulerInterface {
         panel.add(dateLabel);
 		// 일정 가져오기
         String[] schedules = scheduler.specifyScheList(user, selectedDate);
+		List<String> sortedSchedules = sortSchedules(schedules); // 정렬된 일정 리스트
 		// 일정 선택 콤보박스
-        JComboBox<String> scheduleComboBox = new JComboBox<>(schedules);
+        JComboBox<String> scheduleComboBox = new JComboBox<>(sortedSchedules.toArray(new String[0]));
         scheduleComboBox.setBounds(350, 170, 400, 30);
         scheduleComboBox.setFont(new Font("Malgun Gothic", Font.PLAIN, 14));
         panel.add(scheduleComboBox);
@@ -878,6 +880,46 @@ public class SchedulerInterface {
         }
         return null; // 유효한 ID
     }
+
+	// 일정 분류 및 정렬 함수
+public List<String> sortSchedules(String[] schedules) {
+    List<String> formattedSchedules = new ArrayList<>();
+    List<String> nonFormattedSchedules = new ArrayList<>();
+
+    // "오전/오후 x시 - 내용" 형식의 정규표현식
+    String timeFormatRegex = "^(오전|오후)\\s*\\d+시\\s*-\\s*.+$";
+
+    // 일정 분류
+    for (String schedule : schedules) {
+        if (schedule.matches(timeFormatRegex)) {
+            formattedSchedules.add(schedule);
+        } else {
+            nonFormattedSchedules.add(schedule);
+        }
+    }
+
+    // "오전/오후 x시" 기준 정렬
+    formattedSchedules.sort((s1, s2) -> {
+        int time1 = extractTimeFromSchedule(s1);
+        int time2 = extractTimeFromSchedule(s2);
+        return Integer.compare(time1, time2);
+    });
+
+    // 분류된 일정 병합 (미정렬 + 정렬된 일정 순서로)
+    List<String> sortedSchedules = new ArrayList<>();
+    sortedSchedules.addAll(nonFormattedSchedules); 
+    sortedSchedules.addAll(formattedSchedules);    
+
+    return sortedSchedules;
+}
+
+	// "오전/오후 x시 - 내용" 형식의 시간 추출 메서드
+	private int extractTimeFromSchedule(String schedule) {
+		String[] parts = schedule.split("\\s*-\\s*")[0].split("\\s+"); // -기준으로 분리, 공백 기준으로 분리
+		boolean isAfternoon = parts[0].equals("오후");
+		int hour = Integer.parseInt(parts[1].replace("시", "").trim());
+		return isAfternoon ? hour + 12 : hour; 
+	}
 
     // 화면 전환 메서드
 	public void showScreen(String name) {
