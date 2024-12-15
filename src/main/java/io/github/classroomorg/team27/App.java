@@ -8,6 +8,6 @@ import schedulerAlertApp.*;
 public class App 
 {
     public static void main( String[] args ){
-        System.out.println( "Hello World!" );
+        SchedulerInterface scheduler = new SchedulerInterface(new Register(), new Scheduler());
     }
 }
