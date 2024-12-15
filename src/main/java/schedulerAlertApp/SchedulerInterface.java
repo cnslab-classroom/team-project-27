@@ -224,13 +224,13 @@ public class SchedulerInterface {
 	        idLabel.setBounds(150, baseY, 100, 30);
 			// ID 입력 필드
 	        JTextField idField = new JTextField();
-	        idField.setBounds(250, baseY, 200, 30);
+			idField.setBounds(250, baseY, 200, 30);
 			// 아이디 확인 버튼
 	        JButton verifyIDButton = new JButton("아이디 확인");
 	        verifyIDButton.setBounds(460, baseY, 120, 30);
 	        styleButton(verifyIDButton, new Color(153, 224, 173)); // 연두색
 			// 비밀번호 레이블
-	        JLabel passwordLabel = new JLabel("Password");
+	        JLabel passwordLabel = new JLabel("6자리 이상");
 	        passwordLabel.setBounds(150, baseY + 50, 100, 30);
 			// 비밀번호 입력 필드
 	        JPasswordField passwordField = new JPasswordField();
@@ -593,40 +593,84 @@ public class SchedulerInterface {
 	        panel.add(titleLabel);
 
 	        // 날짜 레이블
-	        JLabel dateLabel = new JLabel("날짜 (YYYYMMDD)");
+	        JLabel dateLabel = new JLabel("날짜");
 	        dateLabel.setFont(new Font("Malgun Gothic", Font.PLAIN, 20));
 	        dateLabel.setBounds(200, 150, 200, 30);
 	        panel.add(dateLabel);
 			// 날짜 입력 필드
-	        JTextField dateField = new JTextField();
+	        JTextField dateField = new JTextField("형식 : YYYYMMDD");
 	        dateField.setFont(new Font("Malgun Gothic", Font.PLAIN, 18));
 	        dateField.setBounds(450, 150, 300, 40);
 	        dateField.setBorder(BorderFactory.createLineBorder(new Color(153, 153, 255), 3, true)); 
+			dateField.setForeground(Color.GRAY);
 	        panel.add(dateField);
+
+			// 플레이스홀더 
+			dateField.addFocusListener(new java.awt.event.FocusAdapter() {
+				@Override
+				public void focusGained(java.awt.event.FocusEvent e) {
+					if (dateField.getText().equals("형식 : YYYYMMDD")) {
+						dateField.setText(""); 
+						dateField.setForeground(Color.BLACK); 
+					}
+				}
+
+				@Override
+				public void focusLost(java.awt.event.FocusEvent e) {
+					if (dateField.getText().trim().isEmpty()) {
+						dateField.setText("형식 : YYYYMMDD"); 
+						dateField.setForeground(Color.GRAY); 
+					}
+				}
+			});
+
 	        // 일정 내용 레이블
 	        JLabel dataLabel = new JLabel("일정 내용");
 	        dataLabel.setFont(new Font("Malgun Gothic", Font.PLAIN, 20));
 	        dataLabel.setBounds(200, 250, 200, 30);
 	        panel.add(dataLabel);
 			// 일정 내용 입력 필드
-	        JTextArea dataField = new JTextArea();
+	        JTextArea dataField = new JTextArea("예시 : 오전 10시 - 회의");
 	        dataField.setFont(new Font("Malgun Gothic", Font.PLAIN, 18));
 	        dataField.setLineWrap(true); // 줄 바꿈 허용
 	        dataField.setWrapStyleWord(true);
+			dataField.setForeground(Color.GRAY); 
 	        dataField.setBorder(BorderFactory.createEmptyBorder(5,5, 5, 5)); 
+
+			// 플레이스홀더 
+			dataField.addFocusListener(new java.awt.event.FocusAdapter() {
+				@Override
+				public void focusGained(java.awt.event.FocusEvent e) {
+					if (dataField.getText().equals("예시 : 오전 10시 - 회의")) {
+						dataField.setText(""); 
+						dataField.setForeground(Color.BLACK); 
+					}
+				}
+
+				@Override
+				public void focusLost(java.awt.event.FocusEvent e) {
+					if (dataField.getText().trim().isEmpty()) {
+						dataField.setText("예시 : 오전 10시 - 회의"); 
+						dataField.setForeground(Color.GRAY); 
+					}
+				}
+			});
+
 			// 스크롤 패널	
 	        JScrollPane dataScrollPane = new JScrollPane(dataField);
 	        dataScrollPane.setBounds(450, 250, 500, 300);
 	        dataScrollPane.setBorder(BorderFactory.createLineBorder(new Color(153, 153, 255),3,true)); 
 	        panel.add(dataScrollPane);
 	        // 저장 버튼
-	        JButton saveButton = new JButton("Save");
+	        JButton saveButton = new JButton("저장");
 	        saveButton.setBounds(450, 600, 150, 50);
+			saveButton.setFont(new Font("Malgun Gothic", Font.PLAIN, 14));
 	        styleButton(saveButton, new Color(173, 216, 230)); // 하늘색
 	        panel.add(saveButton);
 	        // 취소 버튼
-	        JButton cancelButton = new JButton("Cancel");
+	        JButton cancelButton = new JButton("취소");
 	        cancelButton.setBounds(650, 600, 150, 50);
+			cancelButton.setFont(new Font("Malgun Gothic", Font.PLAIN, 14));
 	        styleButton(cancelButton, new Color(204, 153, 255)); // 보라색
 	        panel.add(cancelButton);
 
@@ -637,7 +681,7 @@ public class SchedulerInterface {
 	                String date = dateField.getText().trim();
 	                String data = dataField.getText().trim();
 					// 빈 필드 여부
-	                if (date.isEmpty() || data.isEmpty()) {
+	                if (date.isEmpty() || data.isEmpty()||date.equals("형식 : YYYYMMDD")||data.equals("예시 : 오전 10시 - 회의")) {
 	                    JOptionPane.showMessageDialog(panel, "모든 필드를 입력해주세요.", "Error", JOptionPane.ERROR_MESSAGE);
 	                    return;
 	                }
