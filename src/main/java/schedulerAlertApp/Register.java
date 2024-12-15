@@ -38,7 +38,7 @@ public class Register {
     private static final String CHARSET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; //random string generator source
 
     public Register(){
-        System.out.println("Register object created start");    //This comment is for debugging
+        //System.out.println("Register object created start");    //This comment is for debugging
         this.userId = null;
         try {
             FirebaseInit.main(null);
@@ -58,7 +58,7 @@ public class Register {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        System.out.println("Register object created end");  //This comment is for debugging
+        //System.out.println("Register object created end");  //This comment is for debugging
     }
 
     protected CompletableFuture<Boolean> register(String id, String password, int questionIndex, String questionAns){  //debugging complete
@@ -88,12 +88,12 @@ public class Register {
     }
 
     protected int login(String id, String password, boolean autoLogin){ //debugging complete
-        System.out.println("Login Start");  //This comment is for debugging
+        //System.out.println("Login Start");  //This comment is for debugging
         //Check id
         List<String> userIdList=new ArrayList<>();
         CompletableFuture<String[]> futureId = getKeyArray(false);
         futureId.thenAccept(keys -> {
-            System.out.println("Keys class:" + keys.getClass().getName());  //This comment is for debugging
+            //System.out.println("Keys class:" + keys.getClass().getName());  //This comment is for debugging
         }).exceptionally(e -> {
             System.err.println("Error getting keys: " + e.getMessage());
             return null;
@@ -114,7 +114,7 @@ public class Register {
         CompletableFuture<String> futureS = getData("/" + id + "/password",String.class);
         String storedPassword;
         futureS.thenRun(() -> {
-            System.out.println("Password updated successfully.");   //This comment is for debugging
+            //System.out.println("Password updated successfully.");   //This comment is for debugging
         }).exceptionally(e -> {
             System.err.println("Error setting password: " + e.getMessage());
             return null;
@@ -128,7 +128,7 @@ public class Register {
         if(!BCrypt.checkpw(password, storedPassword))
             return 3;
         userId = id;    //Login successed
-        System.out.println("Password checked"); //This comment is for debugging
+        //System.out.println("Password checked"); //This comment is for debugging
         //Check autoLogin
         if(autoLogin){
             //Create autoLoginStr and autoLoginKey
@@ -224,7 +224,7 @@ public class Register {
         List<String> userIdList=new ArrayList<>();
         CompletableFuture<String[]> futureId = getKeyArray(false);
         futureId.thenAccept(keys -> {
-            System.out.println("Keys class:" + keys.getClass().getName());  //This comment is for debugging
+            //System.out.println("Keys class:" + keys.getClass().getName());  //This comment is for debugging
         }).exceptionally(e -> {
             System.err.println("Error getting keys: " + e.getMessage());
             return null;
@@ -244,13 +244,13 @@ public class Register {
         CompletableFuture<String> futureS1 = getData("/" + id + "/autoLoginStr",String.class);
         CompletableFuture<String> futureS2 = getData("/" + id + "/autoLoginKey",String.class);
         futureS1.thenRun(() -> {
-            System.out.println("Password updated successfully.");   //This comment is for debugging
+            //System.out.println("Password updated successfully.");   //This comment is for debugging
         }).exceptionally(e -> {
             System.err.println("Error setting password: " + e.getMessage());
             return null;
         });
         futureS2.thenRun(() -> {
-            System.out.println("Password updated successfully.");   //This comment is for debugging
+            //System.out.println("Password updated successfully.");   //This comment is for debugging
         }).exceptionally(e -> {
             System.err.println("Error setting password: " + e.getMessage());
             return null;
@@ -265,7 +265,7 @@ public class Register {
         
         if(BCrypt.checkpw(autoLoginData.getStr(), storedStrFB) && BCrypt.checkpw(storedKeyFB,autoLoginData.getKey())){   //autoLogin successed
             userId = id;
-            System.out.println("AutoLogin successed: userId = " + userId);  //This comment is for debugging
+            //System.out.println("AutoLogin successed: userId = " + userId);  //This comment is for debugging
             return true;
         }
         return false;
@@ -276,7 +276,7 @@ public class Register {
         List<String> userIdList=new ArrayList<>();
         CompletableFuture<String[]> futureId = getKeyArray(false);
         futureId.thenAccept(keys -> {
-            System.out.println("Keys class:" + keys.getClass().getName());  //This comment is for debugging
+            //System.out.println("Keys class:" + keys.getClass().getName());  //This comment is for debugging
         }).exceptionally(e -> {
             System.err.println("Error getting keys: " + e.getMessage());
             return null;
@@ -292,11 +292,11 @@ public class Register {
         if(!userIdList.contains(id))
             return 2;
         
-        System.out.println("Id checked");   //This comment is for debugging
+        //System.out.println("Id checked");   //This comment is for debugging
         // check question
         CompletableFuture<Long> futureI = getData("/" + id + "/questionIndex",Long.class);
         futureI.exceptionally(ex -> {
-            System.err.println("Failed to read data: " + ex.getMessage());  //This comment is for debugging
+            System.err.println("Failed to read data: " + ex.getMessage());  
             return Long.valueOf(-1);
         }).thenAccept(result -> {});
         int storedQuestionIndex=-1;
@@ -309,7 +309,7 @@ public class Register {
         CompletableFuture<String> futureS=getData("/" + id + "/questionAns",String.class);
         futureS.thenAccept(result -> {})
             .exceptionally(ex -> {
-                System.err.println("Failed to read data: " + ex.getMessage());  //This comment is for debugging
+                System.err.println("Failed to read data: " + ex.getMessage());  
                 return null;
             });
         String storedQuestionAns=null;
@@ -393,7 +393,7 @@ public class Register {
                 }
                 returnFuture.complete((T) value);
             }else{
-                System.out.println("No data found at the specified path."); //This comment is for debugging
+                //System.out.println("No data found at the specified path."); //This comment is for debugging
                 returnFuture.complete(null);
             }
         }).exceptionally(e -> {
@@ -568,7 +568,7 @@ public class Register {
         if(isSchedules){
             getFuture = getData(path, List.class);
             getFuture.thenRun(() -> {
-                System.out.println("Password updated successfully.");   //This comment is for debugging
+                //System.out.println("Password updated successfully.");   //This comment is for debugging
             }).exceptionally(e -> {
                 System.err.println("Error setting password: " + e.getMessage());
                 return null;
@@ -642,7 +642,7 @@ public class Register {
         
         ref.removeValue((databaseError, databaseReference) -> {
             if (databaseError == null) {
-                System.out.println("Data deleted successfully!");   //This comment is for debugging
+                //System.out.println("Data deleted successfully!");   //This comment is for debugging
                 future.complete(true);
             } else {
                 System.err.println("Error deleting data: " + databaseError.getMessage());
@@ -657,7 +657,7 @@ public class Register {
         return future;
     }
 
-    protected String getUserId(){ 
+    protected String getUserId(){ //This function is for debugging
         return userId;
     }
 
@@ -712,7 +712,7 @@ public class Register {
         // Split by ", " and return as List
         return new ArrayList<>(Arrays.asList(trimmedString.split(", ")));
     }
-
+    /* 
     protected void printRef(){  //This function is for debugging
         System.out.println(ref.toString());
     }
@@ -720,7 +720,7 @@ public class Register {
         System.out.println("Register Test Start");
         Register registers = new Register();
         System.out.println("Register Test End");
-    }
+    }*/
 }
 /*
 //--------------------------protect Function usage--------------------------//
