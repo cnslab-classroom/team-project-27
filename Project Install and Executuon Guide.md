@@ -2,7 +2,7 @@
 
 0. **테스트 환경**
    - 필요 Java version: 21 이상
-   - file directory structor ↓
+   - file directory structure ↓
 
 바탕화면/  
 &nbsp;&nbsp;├── java/    
