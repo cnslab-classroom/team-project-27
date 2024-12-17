@@ -19,6 +19,7 @@
 
 1. **zip 파일**
    - .jar zip파일의 압축해제된 file은 team-project-27/target 안에 있어야 합니다.
+   - team-project-27/ 에서 project_Scheduler.zip file이 위 file directory structure의 project_Scheduler를 압축한 file입니다.
 
 2. **serviceAccountKey.json**
    - 일반적인 배포가 불가능하기에 해당 파일의 data를 메일로 보내드린 data로 덮어쓰기를 해주셔야 합니다.
@@ -26,3 +27,6 @@
 3. **무한로딩**
    - 프로그램이 무한 로딩에 걸려서 종료키가 먹통이 되는 경우, 현재까지 확인된 바로는 serviceAccountKey가 만료되어 나타난 버그로 새로운 serviceAccountKey를 할당받은 후 해당 json파일으로 덮어쓰기를 해야지 해결됩니다.
    - 프로그램 종료는 작업관리자에서 강제 종료를 해야합니다. 
+
+4. **컴퓨터 부팅 시 자동 시작**
+   - project_Scheduler.zip를 압축해제한 뒤, 안에 들어있는 project_Scheduler.exe의 바로가기 파일을 window기준 시작프로그램 폴더에 넣을 시 컴퓨터가 켜질 때마다 프로그램도 자동으로 같이 켜집니다.
